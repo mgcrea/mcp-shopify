@@ -1,0 +1,56 @@
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
+
+import type { ShopifyGraphQLClient } from "../client/graphql.js";
+import { toGid } from "../client/gid.js";
+import {
+  PRODUCT_VARIANTS_QUERY,
+  VARIANT_BY_ID_QUERY,
+  VARIANTS_SEARCH_QUERY,
+} from "../client/queries/variants.js";
+import { afterArg, firstArg, wrap } from "./util.js";
+
+export const registerVariantTools = (server: McpServer, client: ShopifyGraphQLClient): void => {
+  server.tool(
+    "list_product_variants",
+    "List product variants. If `productId` is set, returns that product's variants; " +
+      'otherwise performs a store-wide variant search using `query` (e.g. "sku:ABC-123").',
+    {
+      productId: z
+        .string()
+        .optional()
+        .describe("Product ID (numeric or gid). When set, lists this product's variants."),
+      query: z
+        .string()
+        .optional()
+        .describe(
+          'Shopify search query for store-wide search when `productId` is omitted, e.g. "sku:ABC-123".',
+        ),
+      first: firstArg,
+      after: afterArg,
+    },
+    async ({ productId, query, first, after }) =>
+      wrap(() => {
+        if (productId) {
+          return client.request(PRODUCT_VARIANTS_QUERY, {
+            id: toGid("Product", productId),
+            first,
+            after,
+          });
+        }
+        return client.request(VARIANTS_SEARCH_QUERY, { first, after, query });
+      }),
+  );
+
+  server.tool(
+    "get_product_variant",
+    "Get a single product variant with full detail (price, SKU, selected options, inventory item).",
+    {
+      id: z
+        .string()
+        .describe("Variant ID — numeric or a gid (gid://shopify/ProductVariant/1234567890)."),
+    },
+    async ({ id }) =>
+      wrap(() => client.request(VARIANT_BY_ID_QUERY, { id: toGid("ProductVariant", id) })),
+  );
+};
