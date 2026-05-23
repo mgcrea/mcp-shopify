@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { BUILD_INFO } from "./build-info.js";
+import { createClientCredentialsTokenProvider } from "./client/auth.js";
 import { ShopifyGraphQLClient, type Logger } from "./client/graphql.js";
 import type { Config } from "./config.js";
 import { registerTools } from "./tools/index.js";
@@ -22,9 +23,16 @@ export type CreatedServer = {
 
 export const createServer = (opts: CreateServerOptions): CreatedServer => {
   const server = new McpServer({ name: SERVER_NAME, version: SERVER_VERSION });
+  const tokenProvider = createClientCredentialsTokenProvider({
+    storeDomain: opts.config.storeDomain,
+    apiKey: opts.config.apiKey,
+    apiSecret: opts.config.apiSecret,
+    ...(opts.fetch ? { fetch: opts.fetch } : {}),
+    ...(opts.logger ? { logger: opts.logger } : {}),
+  });
   const client = new ShopifyGraphQLClient({
     storeDomain: opts.config.storeDomain,
-    accessToken: opts.config.accessToken,
+    tokenProvider,
     apiVersion: opts.config.apiVersion,
     maxRetries: opts.config.maxRetries,
     userAgent: USER_AGENT,

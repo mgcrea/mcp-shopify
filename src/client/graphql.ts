@@ -1,3 +1,4 @@
+import type { TokenProvider } from "./auth.js";
 import { ShopifyApiError } from "./errors.js";
 
 export type Logger = {
@@ -8,7 +9,7 @@ export type Logger = {
 
 export type GraphQLClientOptions = {
   storeDomain: string;
-  accessToken: string;
+  tokenProvider: TokenProvider;
   apiVersion: string;
   maxRetries?: number;
   fetch?: typeof fetch;
@@ -77,7 +78,7 @@ const safeJsonParse = (text: string): unknown => {
  */
 export class ShopifyGraphQLClient {
   private readonly endpoint: string;
-  private readonly accessToken: string;
+  private readonly tokenProvider: TokenProvider;
   private readonly maxRetries: number;
   private readonly fetchImpl: typeof fetch;
   private readonly logger: Logger | undefined;
@@ -85,7 +86,7 @@ export class ShopifyGraphQLClient {
 
   constructor(opts: GraphQLClientOptions) {
     this.endpoint = `https://${opts.storeDomain}/admin/api/${opts.apiVersion}/graphql.json`;
-    this.accessToken = opts.accessToken;
+    this.tokenProvider = opts.tokenProvider;
     this.maxRetries = opts.maxRetries ?? 3;
     this.fetchImpl = opts.fetch ?? fetch;
     this.logger = opts.logger;
@@ -96,12 +97,13 @@ export class ShopifyGraphQLClient {
     let attempt = 0;
     for (;;) {
       this.logger?.debug?.(`[shopify] POST ${this.endpoint} (attempt ${attempt + 1})`);
+      const token = await this.tokenProvider.getToken();
       const res = await this.fetchImpl(this.endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
-          "X-Shopify-Access-Token": this.accessToken,
+          "X-Shopify-Access-Token": token,
           "User-Agent": this.userAgent,
         },
         body: JSON.stringify({ query, ...(variables ? { variables } : {}) }),
@@ -112,6 +114,14 @@ export class ShopifyGraphQLClient {
         const delay = retryAfterMs(res) ?? backoffMs(attempt);
         this.logger?.warn?.(`[shopify] HTTP 429 — retrying in ${delay}ms`);
         await sleep(delay);
+        attempt += 1;
+        continue;
+      }
+
+      // Token rejected mid-session — invalidate cache and retry with a fresh one.
+      if (res.status === 401 && attempt < this.maxRetries) {
+        this.logger?.warn?.(`[shopify] HTTP 401 — invalidating token and retrying`);
+        this.tokenProvider.invalidate();
         attempt += 1;
         continue;
       }

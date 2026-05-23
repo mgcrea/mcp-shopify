@@ -12,4 +12,13 @@ export {
   type GraphQLClientOptions,
   type Logger,
 } from "./client/graphql.js";
+export {
+  createClientCredentialsTokenProvider,
+  requestAccessToken,
+  staticTokenProvider,
+  type AccessTokenResponse,
+  type ClientCredentialsTokenProviderOptions,
+  type RequestAccessTokenOptions,
+  type TokenProvider,
+} from "./client/auth.js";
 export { ShopifyApiError } from "./client/errors.js";

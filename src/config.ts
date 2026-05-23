@@ -2,7 +2,8 @@ import { z } from "zod";
 
 const ConfigSchema = z.object({
   storeDomain: z.string().min(1, "SHOPIFY_STORE_DOMAIN is required"),
-  accessToken: z.string().min(1, "SHOPIFY_ADMIN_ACCESS_TOKEN is required"),
+  apiKey: z.string().min(1, "SHOPIFY_API_KEY is required"),
+  apiSecret: z.string().min(1, "SHOPIFY_API_SECRET is required"),
   apiVersion: z.string().min(1).default("2026-04"),
   maxRetries: z.number().int().nonnegative().max(10).default(3),
 });
@@ -35,7 +36,8 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): Config => {
   const rawDomain = env.SHOPIFY_STORE_DOMAIN;
   return ConfigSchema.parse({
     storeDomain: rawDomain ? normalizeStoreDomain(rawDomain) : undefined,
-    accessToken: env.SHOPIFY_ADMIN_ACCESS_TOKEN,
+    apiKey: env.SHOPIFY_API_KEY,
+    apiSecret: env.SHOPIFY_API_SECRET,
     apiVersion: env.SHOPIFY_API_VERSION,
     maxRetries: parseIntOpt(env.SHOPIFY_MAX_RETRIES),
   });
