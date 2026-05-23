@@ -19,16 +19,31 @@ describe("normalizeStoreDomain", () => {
 });
 
 describe("loadConfig", () => {
-  it("requires store domain and access token", () => {
+  it("requires store domain, api key and api secret", () => {
     expect(() => loadConfig({} as NodeJS.ProcessEnv)).toThrow();
+    expect(() =>
+      loadConfig({
+        SHOPIFY_STORE_DOMAIN: "my-store",
+        SHOPIFY_API_KEY: "id",
+      } as NodeJS.ProcessEnv),
+    ).toThrow(/apiSecret/);
+    expect(() =>
+      loadConfig({
+        SHOPIFY_STORE_DOMAIN: "my-store",
+        SHOPIFY_API_SECRET: "shpss_x",
+      } as NodeJS.ProcessEnv),
+    ).toThrow(/apiKey/);
   });
 
   it("applies defaults", () => {
     const cfg = loadConfig({
       SHOPIFY_STORE_DOMAIN: "my-store",
-      SHOPIFY_ADMIN_ACCESS_TOKEN: "shpat_x",
+      SHOPIFY_API_KEY: "id",
+      SHOPIFY_API_SECRET: "shpss_x",
     } as NodeJS.ProcessEnv);
     expect(cfg.storeDomain).toBe("my-store.myshopify.com");
+    expect(cfg.apiKey).toBe("id");
+    expect(cfg.apiSecret).toBe("shpss_x");
     expect(cfg.apiVersion).toBe("2026-04");
     expect(cfg.maxRetries).toBe(3);
   });
@@ -36,7 +51,8 @@ describe("loadConfig", () => {
   it("honors overrides", () => {
     const cfg = loadConfig({
       SHOPIFY_STORE_DOMAIN: "my-store.myshopify.com",
-      SHOPIFY_ADMIN_ACCESS_TOKEN: "shpat_x",
+      SHOPIFY_API_KEY: "id",
+      SHOPIFY_API_SECRET: "shpss_x",
       SHOPIFY_API_VERSION: "2025-10",
       SHOPIFY_MAX_RETRIES: "5",
     } as NodeJS.ProcessEnv);

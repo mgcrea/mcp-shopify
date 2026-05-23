@@ -1,13 +1,14 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { describe, expect, it, vi } from "vitest";
 
+import { staticTokenProvider } from "../src/client/auth.js";
 import { ShopifyGraphQLClient } from "../src/client/graphql.js";
 import { registerTools } from "../src/tools/index.js";
 
 const buildClient = (): ShopifyGraphQLClient =>
   new ShopifyGraphQLClient({
     storeDomain: "test.myshopify.com",
-    accessToken: "shpat_test",
+    tokenProvider: staticTokenProvider("shpat_test"),
     apiVersion: "2026-04",
     fetch: vi.fn(async () => new Response("{}", { status: 200 })) as unknown as typeof fetch,
   });
