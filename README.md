@@ -15,7 +15,9 @@ The server is **read-only**: it exposes only query tools, so it can never mutate
   `subscription` operations are rejected.
 - Native `fetch`, zero runtime dependencies beyond the MCP SDK and Zod.
 - Automatic retry on HTTP 429 and cost-based `THROTTLED` GraphQL errors.
-- Single-store auth via a custom app Admin API access token — no OAuth flow.
+- Single-store auth via the **OAuth client credentials grant** — the server exchanges
+  your Dev Dashboard app's Client ID + Client Secret for a short-lived Admin API access
+  token and auto-refreshes it (also on a mid-session 401).
 
 ## Install
 
@@ -26,28 +28,37 @@ pnpm build
 
 ## Configure
 
-This server talks to a single store using a **custom app** Admin API access token.
+This server talks to a single store using a **Dev Dashboard** app and the OAuth
+client credentials grant. Shopify deprecated the in-admin "Develop apps" flow on
+January 1, 2026, so new custom apps no longer expose a copy-paste `shpat_` token —
+they expose a Client ID + Client Secret that the server exchanges at runtime.
 
-1. In the Shopify admin, go to **Settings → Apps and sales channels → Develop apps**.
-2. Create an app, then under **API credentials → Admin API integration** grant the
-   scopes you need: `read_products` (required), plus `read_inventory` and `read_locations`
-   for the inventory tools.
-3. Install the app and copy the **Admin API access token** (it starts with `shpat_`).
+1. Go to the [Shopify Dev Dashboard](https://dev.shopify.com) → **Apps → Create app**.
+2. Configure **Admin API access scopes** on the app: `read_products` (required), plus
+   `read_inventory` and `read_locations` for the inventory tools.
+3. **Install the app on your store** (the client credentials grant only works once the
+   app is installed on the target shop).
+4. Copy the **Client ID** and **Client secret** (the secret starts with `shpss_`) from
+   the app's API credentials page.
 
 Then create your `.env`:
 
 ```bash
 cp .env.example .env
-# Fill in SHOPIFY_STORE_DOMAIN and SHOPIFY_ADMIN_ACCESS_TOKEN
+# Fill in SHOPIFY_STORE_DOMAIN, SHOPIFY_API_KEY (Client ID), SHOPIFY_API_SECRET (shpss_…)
 ```
 
 | Variable | Required | Description |
 | --- | --- | --- |
 | `SHOPIFY_STORE_DOMAIN` | yes | The `*.myshopify.com` domain. A bare handle (`my-store`) is expanded automatically. |
-| `SHOPIFY_ADMIN_ACCESS_TOKEN` | yes | Custom app Admin API access token (`shpat_...`). |
+| `SHOPIFY_API_KEY` | yes | Dev Dashboard app Client ID. |
+| `SHOPIFY_API_SECRET` | yes | Dev Dashboard app Client secret (`shpss_...`). |
 | `SHOPIFY_API_VERSION` | no | Admin GraphQL API version. Defaults to `2026-04`. |
-| `SHOPIFY_MAX_RETRIES` | no | Retry budget for rate-limit / throttle responses. Defaults to `3`. |
+| `SHOPIFY_MAX_RETRIES` | no | Retry budget for rate-limit / throttle / 401 responses. Defaults to `3`. |
 | `SHOPIFY_DEBUG` | no | Set to `1` to log debug output to stderr. |
+
+The server fetches an Admin API access token on first use and refreshes it
+automatically (≈24h tokens, refreshed 2min before expiry and on any 401).
 
 ## Run
 
@@ -67,7 +78,8 @@ Add to `.mcp.json` (project) or `~/.claude.json` (global):
       "args": ["/absolute/path/to/mcp-shopify/dist/cli.js"],
       "env": {
         "SHOPIFY_STORE_DOMAIN": "my-store.myshopify.com",
-        "SHOPIFY_ADMIN_ACCESS_TOKEN": "shpat_..."
+        "SHOPIFY_API_KEY": "...",
+        "SHOPIFY_API_SECRET": "shpss_..."
       }
     }
   }
