@@ -48,14 +48,14 @@ cp .env.example .env
 # Fill in SHOPIFY_STORE_DOMAIN, SHOPIFY_CLIENT_ID, SHOPIFY_CLIENT_SECRET (shpss_…)
 ```
 
-| Variable | Required | Description |
-| --- | --- | --- |
-| `SHOPIFY_STORE_DOMAIN` | yes | The `*.myshopify.com` domain. A bare handle (`my-store`) is expanded automatically. |
-| `SHOPIFY_CLIENT_ID` | yes | Dev Dashboard app Client ID. |
-| `SHOPIFY_CLIENT_SECRET` | yes | Dev Dashboard app Client secret (`shpss_...`). |
-| `SHOPIFY_API_VERSION` | no | Admin GraphQL API version. Defaults to `2026-04`. |
-| `SHOPIFY_MAX_RETRIES` | no | Retry budget for rate-limit / throttle / 401 responses. Defaults to `3`. |
-| `SHOPIFY_DEBUG` | no | Set to `1` to log debug output to stderr. |
+| Variable                | Required | Description                                                                         |
+| ----------------------- | -------- | ----------------------------------------------------------------------------------- |
+| `SHOPIFY_STORE_DOMAIN`  | yes      | The `*.myshopify.com` domain. A bare handle (`my-store`) is expanded automatically. |
+| `SHOPIFY_CLIENT_ID`     | yes      | Dev Dashboard app Client ID.                                                        |
+| `SHOPIFY_CLIENT_SECRET` | yes      | Dev Dashboard app Client secret (`shpss_...`).                                      |
+| `SHOPIFY_API_VERSION`   | no       | Admin GraphQL API version. Defaults to `2026-04`.                                   |
+| `SHOPIFY_MAX_RETRIES`   | no       | Retry budget for rate-limit / throttle / 401 responses. Defaults to `3`.            |
+| `SHOPIFY_DEBUG`         | no       | Set to `1` to log debug output to stderr.                                           |
 
 The server fetches an Admin API access token on first use and refreshes it
 automatically (≈24h tokens, refreshed 2min before expiry and on any 401).
@@ -127,10 +127,15 @@ Wire it into Claude Code by replacing `command`/`args` in `.mcp.json`:
     "shopify": {
       "command": "docker",
       "args": [
-        "run", "--rm", "-i",
-        "-e", "SHOPIFY_STORE_DOMAIN",
-        "-e", "SHOPIFY_CLIENT_ID",
-        "-e", "SHOPIFY_CLIENT_SECRET",
+        "run",
+        "--rm",
+        "-i",
+        "-e",
+        "SHOPIFY_STORE_DOMAIN",
+        "-e",
+        "SHOPIFY_CLIENT_ID",
+        "-e",
+        "SHOPIFY_CLIENT_SECRET",
         "ghcr.io/mgcrea/mcp-shopify:latest"
       ],
       "env": {
@@ -157,21 +162,21 @@ context.
 
 ## Tools
 
-| Tool | Purpose |
-| --- | --- |
-| `list_products` | Paginated product list; `query` accepts Shopify search syntax. |
-| `get_product` | A single product by `id` or `handle`, with full detail. |
-| `list_product_variants` | Variants of a product, or a store-wide variant search. |
-| `get_product_variant` | A single variant by `id`. |
-| `get_product_metafields` | Metafields attached to a product. |
-| `get_variant_metafields` | Metafields attached to a variant. |
+| Tool                         | Purpose                                                                   |
+| ---------------------------- | ------------------------------------------------------------------------- |
+| `list_products`              | Paginated product list; `query` accepts Shopify search syntax.            |
+| `get_product`                | A single product by `id` or `handle`, with full detail.                   |
+| `list_product_variants`      | Variants of a product, or a store-wide variant search.                    |
+| `get_product_variant`        | A single variant by `id`.                                                 |
+| `get_product_metafields`     | Metafields attached to a product.                                         |
+| `get_variant_metafields`     | Metafields attached to a variant.                                         |
 | `list_metafield_definitions` | Metafield definitions for an owner type — the store's custom-data schema. |
-| `list_collections` | Paginated collection list. |
-| `get_collection` | A single collection by `id` or `handle`, optionally with member products. |
-| `list_locations` | The store's locations / warehouses. |
-| `get_variant_inventory` | Inventory levels for a variant across all locations. |
-| `get_shop` | Shop-level settings (name, currency, plan, limits, …). |
-| `shopify_graphql` | Run an arbitrary read-only GraphQL query (mutations rejected). |
+| `list_collections`           | Paginated collection list.                                                |
+| `get_collection`             | A single collection by `id` or `handle`, optionally with member products. |
+| `list_locations`             | The store's locations / warehouses.                                       |
+| `get_variant_inventory`      | Inventory levels for a variant across all locations.                      |
+| `get_shop`                   | Shop-level settings (name, currency, plan, limits, …).                    |
+| `shopify_graphql`            | Run an arbitrary read-only GraphQL query (mutations rejected).            |
 
 All list tools use cursor pagination: pass `pageInfo.endCursor` from one call as the `after`
 argument of the next.

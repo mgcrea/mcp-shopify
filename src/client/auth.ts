@@ -67,10 +67,10 @@ export const requestAccessToken = async (
       res.status === 401
         ? " — check SHOPIFY_CLIENT_ID / SHOPIFY_CLIENT_SECRET and that the app is installed on the store"
         : "";
-    throw new ShopifyApiError(
-      `Shopify OAuth HTTP ${res.status} ${res.statusText}`.trim() + hint,
-      { status: res.status, errors: parsed ?? text },
-    );
+    throw new ShopifyApiError(`Shopify OAuth HTTP ${res.status} ${res.statusText}`.trim() + hint, {
+      status: res.status,
+      errors: parsed ?? text,
+    });
   }
 
   const obj = (parsed ?? {}) as {

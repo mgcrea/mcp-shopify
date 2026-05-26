@@ -1,8 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
-import type { ShopifyGraphQLClient } from "../client/graphql.js";
 import { toGid } from "../client/gid.js";
+import type { ShopifyGraphQLClient } from "../client/graphql.js";
 import { LOCATIONS_QUERY, VARIANT_INVENTORY_QUERY } from "../client/queries/inventory.js";
 import { afterArg, firstArg, wrap } from "./util.js";
 

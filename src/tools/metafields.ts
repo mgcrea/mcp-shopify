@@ -1,8 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
-import type { ShopifyGraphQLClient } from "../client/graphql.js";
 import { toGid } from "../client/gid.js";
+import type { ShopifyGraphQLClient } from "../client/graphql.js";
 import { METAFIELD_DEFINITIONS_QUERY } from "../client/queries/metafield-definitions.js";
 import {
   PRODUCT_METAFIELDS_QUERY,

@@ -1,8 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
-import type { ShopifyGraphQLClient } from "../client/graphql.js";
 import { toGid } from "../client/gid.js";
+import type { ShopifyGraphQLClient } from "../client/graphql.js";
 import {
   COLLECTION_BY_HANDLE_QUERY,
   COLLECTION_BY_ID_QUERY,
@@ -10,10 +10,7 @@ import {
 } from "../client/queries/collections.js";
 import { afterArg, firstArg, wrap } from "./util.js";
 
-export const registerCollectionTools = (
-  server: McpServer,
-  client: ShopifyGraphQLClient,
-): void => {
+export const registerCollectionTools = (server: McpServer, client: ShopifyGraphQLClient): void => {
   server.tool(
     "list_collections",
     "List collections (custom and smart) with cursor pagination. Use `query` for Shopify " +

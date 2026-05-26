@@ -1,9 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  createClientCredentialsTokenProvider,
-  requestAccessToken,
-} from "../src/client/auth.js";
+import { createClientCredentialsTokenProvider, requestAccessToken } from "../src/client/auth.js";
 import { ShopifyApiError } from "../src/client/errors.js";
 
 const jsonResponse = (body: unknown, init?: ResponseInit): Response =>
@@ -49,8 +46,8 @@ describe("requestAccessToken", () => {
   });
 
   it("throws ShopifyApiError on 401 with a credentials hint", async () => {
-    const fetchImpl = vi.fn(async () =>
-      new Response(JSON.stringify({ error: "invalid_client" }), { status: 401 }),
+    const fetchImpl = vi.fn(
+      async () => new Response(JSON.stringify({ error: "invalid_client" }), { status: 401 }),
     ) as unknown as typeof fetch;
 
     await expect(
@@ -128,9 +125,7 @@ describe("createClientCredentialsTokenProvider", () => {
   it("refetches when within the refresh skew of expiry", async () => {
     const fetchImpl = vi
       .fn()
-      .mockResolvedValueOnce(
-        jsonResponse({ access_token: "shpat_one", scope: "", expires_in: 60 }),
-      )
+      .mockResolvedValueOnce(jsonResponse({ access_token: "shpat_one", scope: "", expires_in: 60 }))
       .mockResolvedValueOnce(
         jsonResponse({ access_token: "shpat_two", scope: "", expires_in: 60 }),
       );
@@ -168,9 +163,7 @@ describe("createClientCredentialsTokenProvider", () => {
     const b = provider.getToken();
     // Both calls should be waiting on a single fetch.
     expect(fetchImpl).toHaveBeenCalledTimes(1);
-    resolveFetch?.(
-      jsonResponse({ access_token: "shpat_solo", scope: "", expires_in: 3600 }),
-    );
+    resolveFetch?.(jsonResponse({ access_token: "shpat_solo", scope: "", expires_in: 3600 }));
     expect(await a).toBe("shpat_solo");
     expect(await b).toBe("shpat_solo");
     expect(fetchImpl).toHaveBeenCalledTimes(1);

@@ -81,8 +81,8 @@ describe("ShopifyGraphQLClient", () => {
   });
 
   it("gives up after exhausting retries on persistent 401", async () => {
-    const fetchImpl = vi.fn(async () =>
-      new Response("Unauthorized", { status: 401 }),
+    const fetchImpl = vi.fn(
+      async () => new Response("Unauthorized", { status: 401 }),
     ) as unknown as typeof fetch;
     const client = new ShopifyGraphQLClient({
       storeDomain: "test.myshopify.com",

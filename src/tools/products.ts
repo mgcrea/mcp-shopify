@@ -1,8 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
-import type { ShopifyGraphQLClient } from "../client/graphql.js";
 import { toGid } from "../client/gid.js";
+import type { ShopifyGraphQLClient } from "../client/graphql.js";
 import {
   PRODUCT_BY_HANDLE_QUERY,
   PRODUCT_BY_ID_QUERY,
@@ -49,7 +49,9 @@ export const registerProductTools = (server: McpServer, client: ShopifyGraphQLCl
       id: z
         .string()
         .optional()
-        .describe("Product ID — numeric (e.g. 1234567890) or a gid (gid://shopify/Product/1234567890)."),
+        .describe(
+          "Product ID — numeric (e.g. 1234567890) or a gid (gid://shopify/Product/1234567890).",
+        ),
       handle: z
         .string()
         .optional()
