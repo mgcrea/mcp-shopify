@@ -92,6 +92,69 @@ Add to `.mcp.json` (project) or `~/.claude.json` (global):
 npx @modelcontextprotocol/inspector node dist/cli.js
 ```
 
+## Docker
+
+A multi-stage [Dockerfile](./Dockerfile) ships with the project. CI publishes a
+multi-arch image (`linux/amd64`, `linux/arm64`) to GHCR on every push to `main`
+and on `v*.*.*` tags:
+
+```bash
+docker pull ghcr.io/mgcrea/mcp-shopify:latest
+```
+
+Run it against your store (the server speaks JSON-RPC over stdio, so attach it
+with `-i`):
+
+```bash
+docker run --rm -i \
+  -e SHOPIFY_STORE_DOMAIN=my-store.myshopify.com \
+  -e SHOPIFY_CLIENT_ID=... \
+  -e SHOPIFY_CLIENT_SECRET=shpss_... \
+  ghcr.io/mgcrea/mcp-shopify:latest
+```
+
+Or, with your secrets already in `.env`:
+
+```bash
+docker run --rm -i --env-file .env ghcr.io/mgcrea/mcp-shopify:latest
+```
+
+Wire it into Claude Code by replacing `command`/`args` in `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "shopify": {
+      "command": "docker",
+      "args": [
+        "run", "--rm", "-i",
+        "-e", "SHOPIFY_STORE_DOMAIN",
+        "-e", "SHOPIFY_CLIENT_ID",
+        "-e", "SHOPIFY_CLIENT_SECRET",
+        "ghcr.io/mgcrea/mcp-shopify:latest"
+      ],
+      "env": {
+        "SHOPIFY_STORE_DOMAIN": "my-store.myshopify.com",
+        "SHOPIFY_CLIENT_ID": "...",
+        "SHOPIFY_CLIENT_SECRET": "shpss_..."
+      }
+    }
+  }
+}
+```
+
+### Build locally
+
+```bash
+pnpm docker:build      # single-arch local image
+pnpm docker:buildx     # multi-arch (linux/amd64,linux/arm64)
+pnpm docker:release    # multi-arch + push to Docker Hub (mgcrea/mcp-shopify)
+```
+
+The build script passes `GIT_COMMIT` / `GIT_COMMIT_DATE` as build args so the
+bundle bakes in real git info even though `.git` isn't copied into the build
+context.
+
 ## Tools
 
 | Tool | Purpose |
