@@ -3,11 +3,11 @@
   "version": "0.2.0",
   "description": "Model Context Protocol server for the Shopify Admin GraphQL API",
   "keywords": [
-    "shopify",
+    "ecommerce",
+    "graphql",
     "mcp",
     "model-context-protocol",
-    "ecommerce",
-    "graphql"
+    "shopify"
   ],
   "license": "MIT",
   "author": "Olivier Louvignes <olivier@mgcrea.io>",
@@ -48,8 +48,9 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
+    "@types/node": "^24.12.4",
     "oxfmt": "^0.45.0",
+    "vite": "^8.0.14",
     "oxlint": "^1.60.0",
     "tsdown": "^0.22.0",
     "typescript": "^6.0.3",
