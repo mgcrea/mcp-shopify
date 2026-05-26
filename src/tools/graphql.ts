@@ -36,7 +36,7 @@ export const registerGraphqlTool = (
     {
       query: z.string().describe("A GraphQL query document. Must be a `query` operation."),
       variables: z
-        .record(z.unknown())
+        .record(z.string(), z.unknown())
         .optional()
         .describe("Optional GraphQL variables object matching the query's declared variables."),
     },
