@@ -18,8 +18,8 @@ export type TokenProvider = {
 
 export type RequestAccessTokenOptions = {
   storeDomain: string;
-  apiKey: string;
-  apiSecret: string;
+  clientId: string;
+  clientSecret: string;
   fetch?: typeof fetch;
 };
 
@@ -41,8 +41,8 @@ export const requestAccessToken = async (
   const url = `https://${opts.storeDomain}/admin/oauth/access_token`;
   const body = new URLSearchParams({
     grant_type: "client_credentials",
-    client_id: opts.apiKey,
-    client_secret: opts.apiSecret,
+    client_id: opts.clientId,
+    client_secret: opts.clientSecret,
   });
 
   const res = await fetchImpl(url, {
@@ -65,7 +65,7 @@ export const requestAccessToken = async (
   if (!res.ok) {
     const hint =
       res.status === 401
-        ? " — check SHOPIFY_API_KEY / SHOPIFY_API_SECRET and that the app is installed on the store"
+        ? " — check SHOPIFY_CLIENT_ID / SHOPIFY_CLIENT_SECRET and that the app is installed on the store"
         : "";
     throw new ShopifyApiError(
       `Shopify OAuth HTTP ${res.status} ${res.statusText}`.trim() + hint,
@@ -95,8 +95,8 @@ export const requestAccessToken = async (
 
 export type ClientCredentialsTokenProviderOptions = {
   storeDomain: string;
-  apiKey: string;
-  apiSecret: string;
+  clientId: string;
+  clientSecret: string;
   fetch?: typeof fetch;
   logger?: Logger;
   /** Refresh this many seconds before `expires_in` lapses. Default 120s. */
@@ -124,8 +124,8 @@ export const createClientCredentialsTokenProvider = (
     opts.logger?.debug?.(`[shopify] refreshing access token via client_credentials`);
     const result = await requestAccessToken({
       storeDomain: opts.storeDomain,
-      apiKey: opts.apiKey,
-      apiSecret: opts.apiSecret,
+      clientId: opts.clientId,
+      clientSecret: opts.clientSecret,
       ...(opts.fetch ? { fetch: opts.fetch } : {}),
     });
     cached = {

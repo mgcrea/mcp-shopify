@@ -25,8 +25,8 @@ describe("requestAccessToken", () => {
 
     const result = await requestAccessToken({
       storeDomain: "test.myshopify.com",
-      apiKey: "client-id",
-      apiSecret: "shpss_secret",
+      clientId: "client-id",
+      clientSecret: "shpss_secret",
       fetch: fetchImpl,
     });
 
@@ -56,14 +56,14 @@ describe("requestAccessToken", () => {
     await expect(
       requestAccessToken({
         storeDomain: "test.myshopify.com",
-        apiKey: "bad",
-        apiSecret: "shpss_bad",
+        clientId: "bad",
+        clientSecret: "shpss_bad",
         fetch: fetchImpl,
       }),
     ).rejects.toMatchObject({
       name: "ShopifyApiError",
       status: 401,
-      message: expect.stringContaining("SHOPIFY_API_KEY"),
+      message: expect.stringContaining("SHOPIFY_CLIENT_ID"),
     });
   });
 
@@ -74,8 +74,8 @@ describe("requestAccessToken", () => {
     await expect(
       requestAccessToken({
         storeDomain: "test.myshopify.com",
-        apiKey: "id",
-        apiSecret: "shpss_x",
+        clientId: "id",
+        clientSecret: "shpss_x",
         fetch: fetchImpl,
       }),
     ).rejects.toBeInstanceOf(ShopifyApiError);
@@ -93,8 +93,8 @@ describe("createClientCredentialsTokenProvider", () => {
     let now = 1_000_000;
     const provider = createClientCredentialsTokenProvider({
       storeDomain: "test.myshopify.com",
-      apiKey: "id",
-      apiSecret: "shpss_x",
+      clientId: "id",
+      clientSecret: "shpss_x",
       fetch: fetchImpl as unknown as typeof fetch,
       now: () => now,
     });
@@ -115,8 +115,8 @@ describe("createClientCredentialsTokenProvider", () => {
       );
     const provider = createClientCredentialsTokenProvider({
       storeDomain: "test.myshopify.com",
-      apiKey: "id",
-      apiSecret: "shpss_x",
+      clientId: "id",
+      clientSecret: "shpss_x",
       fetch: fetchImpl as unknown as typeof fetch,
     });
     expect(await provider.getToken()).toBe("shpat_one");
@@ -137,8 +137,8 @@ describe("createClientCredentialsTokenProvider", () => {
     let now = 1_000_000;
     const provider = createClientCredentialsTokenProvider({
       storeDomain: "test.myshopify.com",
-      apiKey: "id",
-      apiSecret: "shpss_x",
+      clientId: "id",
+      clientSecret: "shpss_x",
       fetch: fetchImpl as unknown as typeof fetch,
       now: () => now,
     });
@@ -159,8 +159,8 @@ describe("createClientCredentialsTokenProvider", () => {
     );
     const provider = createClientCredentialsTokenProvider({
       storeDomain: "test.myshopify.com",
-      apiKey: "id",
-      apiSecret: "shpss_x",
+      clientId: "id",
+      clientSecret: "shpss_x",
       fetch: fetchImpl as unknown as typeof fetch,
     });
 

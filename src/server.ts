@@ -25,8 +25,8 @@ export const createServer = (opts: CreateServerOptions): CreatedServer => {
   const server = new McpServer({ name: SERVER_NAME, version: SERVER_VERSION });
   const tokenProvider = createClientCredentialsTokenProvider({
     storeDomain: opts.config.storeDomain,
-    apiKey: opts.config.apiKey,
-    apiSecret: opts.config.apiSecret,
+    clientId: opts.config.clientId,
+    clientSecret: opts.config.clientSecret,
     ...(opts.fetch ? { fetch: opts.fetch } : {}),
     ...(opts.logger ? { logger: opts.logger } : {}),
   });

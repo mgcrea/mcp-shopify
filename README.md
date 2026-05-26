@@ -45,14 +45,14 @@ Then create your `.env`:
 
 ```bash
 cp .env.example .env
-# Fill in SHOPIFY_STORE_DOMAIN, SHOPIFY_API_KEY (Client ID), SHOPIFY_API_SECRET (shpss_…)
+# Fill in SHOPIFY_STORE_DOMAIN, SHOPIFY_CLIENT_ID, SHOPIFY_CLIENT_SECRET (shpss_…)
 ```
 
 | Variable | Required | Description |
 | --- | --- | --- |
 | `SHOPIFY_STORE_DOMAIN` | yes | The `*.myshopify.com` domain. A bare handle (`my-store`) is expanded automatically. |
-| `SHOPIFY_API_KEY` | yes | Dev Dashboard app Client ID. |
-| `SHOPIFY_API_SECRET` | yes | Dev Dashboard app Client secret (`shpss_...`). |
+| `SHOPIFY_CLIENT_ID` | yes | Dev Dashboard app Client ID. |
+| `SHOPIFY_CLIENT_SECRET` | yes | Dev Dashboard app Client secret (`shpss_...`). |
 | `SHOPIFY_API_VERSION` | no | Admin GraphQL API version. Defaults to `2026-04`. |
 | `SHOPIFY_MAX_RETRIES` | no | Retry budget for rate-limit / throttle / 401 responses. Defaults to `3`. |
 | `SHOPIFY_DEBUG` | no | Set to `1` to log debug output to stderr. |
@@ -78,8 +78,8 @@ Add to `.mcp.json` (project) or `~/.claude.json` (global):
       "args": ["/absolute/path/to/mcp-shopify/dist/cli.js"],
       "env": {
         "SHOPIFY_STORE_DOMAIN": "my-store.myshopify.com",
-        "SHOPIFY_API_KEY": "...",
-        "SHOPIFY_API_SECRET": "shpss_..."
+        "SHOPIFY_CLIENT_ID": "...",
+        "SHOPIFY_CLIENT_SECRET": "shpss_..."
       }
     }
   }
