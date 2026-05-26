@@ -20,6 +20,9 @@ export default defineConfig({
   format: ["esm"],
   target: "node22",
   platform: "node",
+  // tsdown 0.22+ defaults to `.mjs` when platform is "node"; opt out so output
+  // matches `bin`/`main`/`exports` paths (already ESM via `"type": "module"`).
+  fixedExtension: false,
   dts: true,
   clean: true,
   sourcemap: true,
