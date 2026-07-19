@@ -1,7 +1,7 @@
 # @mgcrea/mcp-shopify
 
-[![npm version](https://img.shields.io/npm/v/@mgcrea/mcp-shopify.svg)](https://www.npmjs.com/package/@mgcrea/mcp-shopify)
-[![Docker Image Version](https://img.shields.io/docker/v/mgcrea/mcp-shopify?sort=semver&logo=docker&label=docker)](https://hub.docker.com/r/mgcrea/mcp-shopify)
+[![npm version](https://img.shields.io/npm/v/@mgcrea/mcp-shopify.svg?style=for-the-badge)](https://www.npmjs.com/package/@mgcrea/mcp-shopify)
+[![GHCR](https://img.shields.io/badge/ghcr.io-container_image-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://github.com/mgcrea/mcp-shopify/pkgs/container/mcp-shopify)
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server for the **Shopify Admin
 GraphQL API**. It lets an agent explore and understand how a store is built — products,
@@ -117,7 +117,7 @@ Runs the container image published to GHCR:
 }
 ```
 
-`-i` keeps stdin open, which the stdio transport needs — don't drop it. With your secrets already in `.env`, you can also run it directly: `docker run --rm -i --env-file .env ghcr.io/mgcrea/mcp-shopify:latest`. The same image is mirrored on Docker Hub as `mgcrea/mcp-shopify` if you prefer that registry.
+`-i` keeps stdin open, which the stdio transport needs — don't drop it. With your secrets already in `.env`, you can also run it directly: `docker run --rm -i --env-file .env ghcr.io/mgcrea/mcp-shopify:latest`. GHCR is the only registry CI publishes to — it's what carries the provenance/SBOM/cosign signature described in **Verify** below.
 
 ### C. From source (development)
 
