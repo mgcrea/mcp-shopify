@@ -15,12 +15,87 @@ The server is **read-only**: it exposes only query tools, so it can never mutate
 - Curated tools for products, variants, metafields, metafield definitions, collections,
   inventory & locations, and shop settings.
 - A `shopify_graphql` escape hatch for arbitrary read-only queries — `mutation` and
-  `subscription` operations are rejected.
-- Native `fetch`, zero runtime dependencies beyond the MCP SDK and Zod.
+  `subscription` operations are rejected. See [Security](#security).
+- Native `fetch`, no HTTP client dependency.
 - Automatic retry on HTTP 429 and cost-based `THROTTLED` GraphQL errors.
 - Single-store auth via the **OAuth client credentials grant** — the server exchanges
   your Dev Dashboard app's Client ID + Client Secret for a short-lived Admin API access
   token and auto-refreshes it (also on a mid-session 401).
+
+## Security
+
+You are handing an AI agent credentials to a live storefront, so the honest details
+matter more than reassurance.
+
+### Supply chain
+
+**Two direct dependencies:** `@modelcontextprotocol/sdk` and `zod`. Nothing else is
+chosen by us.
+
+Being straight about what that costs: those two pull in **~94 packages** transitively —
+the number `npm install` prints, and every one arrives via the official MCP SDK. That's
+the honest figure, not "two dependencies". Two things keep the real exposure much
+smaller than 94:
+
+- **Nothing runs at install time.** Not one package in the tree declares a
+  `preinstall`, `install` or `postinstall` script, so `npm install` executes no
+  third-party code — the most common supply-chain attack path simply isn't open.
+- **Only 5 are reachable when the server runs:** the SDK, `zod`, `ajv`, `ajv-formats`
+  and `zod-to-json-schema`. This server speaks **stdio only**, so the SDK's HTTP/SSE/OAuth
+  stack (`express`, `hono`, `jose`, `cors`, `pkce-challenge`, `eventsource`) sits in the
+  tree but is never imported.
+
+Check all of it yourself:
+
+```sh
+npm view @mgcrea/mcp-shopify dependencies                # the two
+npm ls --omit=dev --all                                  # the ~94
+grep -hoE '^import[^;]*from "[^"]+"' node_modules/@mgcrea/mcp-shopify/dist/*.js
+```
+
+That last command prints everything the shipped bundle imports — the SDK's stdio
+entrypoints, `zod`, and Node builtins. Nothing else.
+
+### Verified builds
+
+Neither artifact is published from a laptop:
+
+- **npm** — published by CI through [Trusted Publishing](https://docs.npmjs.com/trusted-publishers)
+  (OIDC), so there is no long-lived `NPM_TOKEN` in existence to leak, plus a
+  [provenance attestation](https://docs.npmjs.com/generating-provenance-statements).
+- **Container** — build provenance, an SBOM, and a
+  [cosign](https://github.com/sigstore/cosign) keyless signature.
+
+Both trace back to the exact commit and CI run that produced them. The commands to check
+are in [Verify](#verify) — please run them rather than take this section's word for it.
+
+### Your credentials
+
+**No long-lived token is stored anywhere.** The server holds your Client ID and Secret
+and exchanges them at runtime for a short-lived (~24h) Admin API access token, refreshed
+about two minutes before expiry and on any mid-session 401. Nothing is written to disk;
+the token lives in memory for the life of the process.
+
+This is also why the deprecated `shpat_` flow isn't supported: a permanent copy-paste
+token in a config file is a worse artifact to leak than a secret that mints 24h tokens.
+
+### Blast radius
+
+Two independent limits:
+
+1. **Read-only by construction.** This server implements no mutating tools at all —
+   there is no write path to disable, because none was written. The `shopify_graphql`
+   escape hatch parses your document and rejects `mutation` and `subscription`
+   operations _before_ any network call (`assertReadOnly` in
+   [src/tools/graphql.ts](./src/tools/graphql.ts)); comments and string literals are
+   stripped first so the keyword can't be smuggled past it.
+2. **Your app's access scopes are the real ceiling**, and this server cannot raise them.
+   Scopes live in the Shopify Dev Dashboard, under your control, not in this codebase.
+
+Those are different kinds of guarantee and worth keeping apart: the first is a property
+of this code and only holds as long as the code is what you think it is; the second is
+enforced by Shopify regardless of what this server does. **Grant only `read_*` scopes**
+and the second one backstops the first. See [Configure](#configure) for the minimum set.
 
 ## Configure
 
