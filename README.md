@@ -1,5 +1,8 @@
 # @mgcrea/mcp-shopify
 
+[![npm version](https://img.shields.io/npm/v/@mgcrea/mcp-shopify.svg)](https://www.npmjs.com/package/@mgcrea/mcp-shopify)
+[![Docker Image Version](https://img.shields.io/docker/v/mgcrea/mcp-shopify?sort=semver&logo=docker&label=docker)](https://hub.docker.com/r/mgcrea/mcp-shopify)
+
 A [Model Context Protocol](https://modelcontextprotocol.io) server for the **Shopify Admin
 GraphQL API**. It lets an agent explore and understand how a store is built — products,
 variants, metafields, metafield definitions, collections, inventory, and shop settings.
@@ -18,13 +21,6 @@ The server is **read-only**: it exposes only query tools, so it can never mutate
 - Single-store auth via the **OAuth client credentials grant** — the server exchanges
   your Dev Dashboard app's Client ID + Client Secret for a short-lived Admin API access
   token and auto-refreshes it (also on a mid-session 401).
-
-## Install
-
-```bash
-pnpm install
-pnpm build
-```
 
 ## Configure
 
@@ -60,22 +56,20 @@ cp .env.example .env
 The server fetches an Admin API access token on first use and refreshes it
 automatically (≈24h tokens, refreshed 2min before expiry and on any 401).
 
-## Run
+## Quick start
 
-```bash
-pnpm start   # speaks JSON-RPC over stdio
-```
+Pick one of the three. All talk to the same Shopify Admin GraphQL API — the difference is only how the server is launched. Options A and B need nothing checked out.
 
-### Wire into Claude Code
+### A. npx — recommended
 
-Add to `.mcp.json` (project) or `~/.claude.json` (global):
+Zero install; `npx` fetches and runs the published package. Wire it into Claude Code (or any MCP client) with your credentials:
 
 ```json
 {
   "mcpServers": {
     "shopify": {
-      "command": "node",
-      "args": ["/absolute/path/to/mcp-shopify/dist/cli.js"],
+      "command": "npx",
+      "args": ["-y", "@mgcrea/mcp-shopify"],
       "env": {
         "SHOPIFY_STORE_DOMAIN": "my-store.myshopify.com",
         "SHOPIFY_CLIENT_ID": "...",
@@ -86,40 +80,15 @@ Add to `.mcp.json` (project) or `~/.claude.json` (global):
 }
 ```
 
-### Inspect the tools
+To try it from a shell (reads the same env, or a local `.env`):
 
-```bash
-npx @modelcontextprotocol/inspector node dist/cli.js
+```sh
+npx -y @mgcrea/mcp-shopify
 ```
 
-## Docker
+### B. Docker (stdio)
 
-A multi-stage [Dockerfile](./Dockerfile) ships with the project. CI publishes a
-multi-arch image (`linux/amd64`, `linux/arm64`) to GHCR on every push to `main`
-and on `v*.*.*` tags:
-
-```bash
-docker pull ghcr.io/mgcrea/mcp-shopify:latest
-```
-
-Run it against your store (the server speaks JSON-RPC over stdio, so attach it
-with `-i`):
-
-```bash
-docker run --rm -i \
-  -e SHOPIFY_STORE_DOMAIN=my-store.myshopify.com \
-  -e SHOPIFY_CLIENT_ID=... \
-  -e SHOPIFY_CLIENT_SECRET=shpss_... \
-  ghcr.io/mgcrea/mcp-shopify:latest
-```
-
-Or, with your secrets already in `.env`:
-
-```bash
-docker run --rm -i --env-file .env ghcr.io/mgcrea/mcp-shopify:latest
-```
-
-Wire it into Claude Code by replacing `command`/`args` in `.mcp.json`:
+Runs the container image published to GHCR:
 
 ```json
 {
@@ -128,8 +97,8 @@ Wire it into Claude Code by replacing `command`/`args` in `.mcp.json`:
       "command": "docker",
       "args": [
         "run",
-        "--rm",
         "-i",
+        "--rm",
         "-e",
         "SHOPIFY_STORE_DOMAIN",
         "-e",
@@ -148,17 +117,25 @@ Wire it into Claude Code by replacing `command`/`args` in `.mcp.json`:
 }
 ```
 
-### Build locally
+`-i` keeps stdin open, which the stdio transport needs — don't drop it. With your secrets already in `.env`, you can also run it directly: `docker run --rm -i --env-file .env ghcr.io/mgcrea/mcp-shopify:latest`. The same image is mirrored on Docker Hub as `mgcrea/mcp-shopify` if you prefer that registry.
 
-```bash
-pnpm docker:build      # single-arch local image
-pnpm docker:buildx     # multi-arch (linux/amd64,linux/arm64)
-pnpm docker:release    # multi-arch + push to Docker Hub (mgcrea/mcp-shopify)
+### C. From source (development)
+
+```sh
+git clone https://github.com/mgcrea/mcp-shopify.git
+cd mcp-shopify
+pnpm install
+pnpm build
+node dist/cli.js        # reads a local .env
 ```
 
-The build script passes `GIT_COMMIT` / `GIT_COMMIT_DATE` as build args so the
-bundle bakes in real git info even though `.git` isn't copied into the build
-context.
+Or wire the built entry directly: `"command": "node"`, `"args": ["/absolute/path/to/mcp-shopify/dist/cli.js"]`.
+
+### Inspect the tools
+
+```sh
+npx @modelcontextprotocol/inspector npx -y @mgcrea/mcp-shopify
+```
 
 ## Tools
 
@@ -189,6 +166,42 @@ pnpm test         # vitest run
 pnpm typecheck    # tsc --noEmit
 pnpm lint         # oxlint
 pnpm format       # oxfmt --write .
+```
+
+### Docker (local build)
+
+```bash
+pnpm docker:build      # single-arch local image
+pnpm docker:buildx     # multi-arch (linux/amd64,linux/arm64)
+pnpm docker:release    # multi-arch + push to Docker Hub (mgcrea/mcp-shopify)
+```
+
+The build script passes `GIT_COMMIT` / `GIT_COMMIT_DATE` as build args so the
+bundle bakes in real git info even though `.git` isn't copied into the build
+context.
+
+### Publish
+
+Options A (npx) and B (Docker) resolve only once a release is out. Pushing a `v*.*.*` tag triggers CI to:
+
+- publish to npm via [Trusted Publishing](https://docs.npmjs.com/trusted-publishers) (OIDC — no `NPM_TOKEN` stored anywhere) with a [provenance attestation](https://docs.npmjs.com/generating-provenance-statements), and
+- build, sign, and push the multi-arch image to `ghcr.io/mgcrea/mcp-shopify`, with build provenance, an SBOM, and a [cosign](https://github.com/sigstore/cosign) keyless signature.
+
+Both artifacts are cryptographically traceable back to the exact commit and CI run that produced them — see **Verify** below. Until a release exists, use Option C from source.
+
+### Verify
+
+Before trusting an artifact from Option A or B, you can check it was actually built by this repo's CI rather than published from someone's laptop:
+
+```sh
+# npm — provenance attestation (also shown as a badge on the npmjs.com package page)
+npm audit signatures
+
+# Docker — cosign keyless signature, tied to this repo's GitHub Actions identity
+cosign verify \
+  --certificate-identity-regexp 'https://github.com/mgcrea/mcp-shopify/.*' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  ghcr.io/mgcrea/mcp-shopify:latest
 ```
 
 ## License
