@@ -1,6 +1,6 @@
 {
   "name": "@mgcrea/mcp-shopify",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Model Context Protocol server for the Shopify Admin GraphQL API",
   "keywords": [
     "ecommerce",
