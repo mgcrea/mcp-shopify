@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "shopify": {
+      "command": "node",
+      "args": ["--import", "tsx", "src/cli.ts"],
+      "env": {
+        "SHOPIFY_STORE_DOMAIN": "my-store.myshopify.com",
+        "SHOPIFY_CLIENT_ID": "",
+        "SHOPIFY_CLIENT_SECRET": "shpss_",
+        "SHOPIFY_API_VERSION": "2026-04",
+        "SHOPIFY_MAX_RETRIES": "3",
+        "SHOPIFY_DEBUG": ""
+      }
+    }
+  }
+}
