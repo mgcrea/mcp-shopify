@@ -27,18 +27,23 @@ export const registerGraphqlTool = (
   client: ShopifyGraphQLClient,
   apiVersion: string,
 ): void => {
-  server.tool(
+  server.registerTool(
     "shopify_graphql",
-    `Run an arbitrary read-only query against the Shopify Admin GraphQL API (version ${apiVersion}). ` +
-      "Use this as an escape hatch when no curated tool fits — for example to explore orders, " +
-      "customers, discounts, publications, or fields the other tools don't expose. Only `query` " +
-      "operations are allowed; `mutation` and `subscription` are rejected.",
     {
-      query: z.string().describe("A GraphQL query document. Must be a `query` operation."),
-      variables: z
-        .record(z.string(), z.unknown())
-        .optional()
-        .describe("Optional GraphQL variables object matching the query's declared variables."),
+      description:
+        `Run an arbitrary read-only query against the Shopify Admin GraphQL API (version ${apiVersion}). ` +
+        "Use this as an escape hatch when no curated tool fits — for example to explore orders, " +
+        "customers, discounts, publications, or fields the other tools don't expose. Only `query` " +
+        "operations are allowed; `mutation` and `subscription` are rejected.",
+      inputSchema: {
+        query: z.string().describe("A GraphQL query document. Must be a `query` operation."),
+        variables: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("Optional GraphQL variables object matching the query's declared variables."),
+      },
+      // Truthful: assertReadOnly rejects mutation/subscription before any network call.
+      annotations: { readOnlyHint: true },
     },
     async ({ query, variables }) =>
       wrap(() => {

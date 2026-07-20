@@ -11,51 +11,59 @@ import {
 import { afterArg, firstArg, wrap } from "./util.js";
 
 export const registerProductTools = (server: McpServer, client: ShopifyGraphQLClient): void => {
-  server.tool(
+  server.registerTool(
     "list_products",
-    "List products in the store with cursor pagination. Use `query` for Shopify's search syntax " +
-      '(e.g. "status:active vendor:Acme product_type:Shoes", "title:shirt", "created_at:>2024-01-01").',
     {
-      query: z
-        .string()
-        .optional()
-        .describe('Optional Shopify search query, e.g. "status:active product_type:Shoes".'),
-      sortKey: z
-        .enum([
-          "TITLE",
-          "PRODUCT_TYPE",
-          "VENDOR",
-          "INVENTORY_TOTAL",
-          "UPDATED_AT",
-          "CREATED_AT",
-          "PUBLISHED_AT",
-          "ID",
-          "RELEVANCE",
-        ])
-        .optional()
-        .describe("Optional sort key for the result set."),
-      first: firstArg,
-      after: afterArg,
+      description:
+        "List products in the store with cursor pagination. Use `query` for Shopify's search syntax " +
+        '(e.g. "status:active vendor:Acme product_type:Shoes", "title:shirt", "created_at:>2024-01-01").',
+      inputSchema: {
+        query: z
+          .string()
+          .optional()
+          .describe('Optional Shopify search query, e.g. "status:active product_type:Shoes".'),
+        sortKey: z
+          .enum([
+            "TITLE",
+            "PRODUCT_TYPE",
+            "VENDOR",
+            "INVENTORY_TOTAL",
+            "UPDATED_AT",
+            "CREATED_AT",
+            "PUBLISHED_AT",
+            "ID",
+            "RELEVANCE",
+          ])
+          .optional()
+          .describe("Optional sort key for the result set."),
+        first: firstArg,
+        after: afterArg,
+      },
+      annotations: { readOnlyHint: true },
     },
     async ({ query, sortKey, first, after }) =>
       wrap(() => client.request(PRODUCTS_QUERY, { first, after, query, sortKey })),
   );
 
-  server.tool(
+  server.registerTool(
     "get_product",
-    "Get a single product with full detail (options, category, price range, SEO). " +
-      "Provide either `id` or `handle`.",
     {
-      id: z
-        .string()
-        .optional()
-        .describe(
-          "Product ID — numeric (e.g. 1234567890) or a gid (gid://shopify/Product/1234567890).",
-        ),
-      handle: z
-        .string()
-        .optional()
-        .describe("Product handle (the URL slug). Used when `id` is omitted."),
+      description:
+        "Get a single product with full detail (options, category, price range, SEO). " +
+        "Provide either `id` or `handle`.",
+      inputSchema: {
+        id: z
+          .string()
+          .optional()
+          .describe(
+            "Product ID — numeric (e.g. 1234567890) or a gid (gid://shopify/Product/1234567890).",
+          ),
+        handle: z
+          .string()
+          .optional()
+          .describe("Product handle (the URL slug). Used when `id` is omitted."),
+      },
+      annotations: { readOnlyHint: true },
     },
     async ({ id, handle }) =>
       wrap(() => {

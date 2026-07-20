@@ -11,40 +11,51 @@ import {
 import { afterArg, firstArg, wrap } from "./util.js";
 
 export const registerCollectionTools = (server: McpServer, client: ShopifyGraphQLClient): void => {
-  server.tool(
+  server.registerTool(
     "list_collections",
-    "List collections (custom and smart) with cursor pagination. Use `query` for Shopify " +
-      'search syntax, e.g. "title:Summer".',
     {
-      query: z.string().optional().describe('Optional Shopify search query, e.g. "title:Summer".'),
-      first: firstArg,
-      after: afterArg,
+      description:
+        "List collections (custom and smart) with cursor pagination. Use `query` for Shopify " +
+        'search syntax, e.g. "title:Summer".',
+      inputSchema: {
+        query: z
+          .string()
+          .optional()
+          .describe('Optional Shopify search query, e.g. "title:Summer".'),
+        first: firstArg,
+        after: afterArg,
+      },
+      annotations: { readOnlyHint: true },
     },
     async ({ query, first, after }) =>
       wrap(() => client.request(COLLECTIONS_QUERY, { first, after, query })),
   );
 
-  server.tool(
+  server.registerTool(
     "get_collection",
-    "Get a single collection with detail (rule set for smart collections, SEO). Provide " +
-      "either `id` or `handle`. Set `includeProducts` to also list member products.",
     {
-      id: z.string().optional().describe("Collection ID — numeric or gid."),
-      handle: z
-        .string()
-        .optional()
-        .describe("Collection handle (URL slug). Used when `id` is omitted."),
-      includeProducts: z
-        .boolean()
-        .default(false)
-        .describe("When true, also returns the collection's products."),
-      productsFirst: z
-        .number()
-        .int()
-        .min(1)
-        .max(250)
-        .default(50)
-        .describe("Maximum products to return when `includeProducts` is true."),
+      description:
+        "Get a single collection with detail (rule set for smart collections, SEO). Provide " +
+        "either `id` or `handle`. Set `includeProducts` to also list member products.",
+      inputSchema: {
+        id: z.string().optional().describe("Collection ID — numeric or gid."),
+        handle: z
+          .string()
+          .optional()
+          .describe("Collection handle (URL slug). Used when `id` is omitted."),
+        includeProducts: z
+          .boolean()
+          .default(false)
+          .describe("When true, also returns the collection's products."),
+        productsFirst: z
+          .number()
+          .int()
+          .min(1)
+          .max(250)
+          .default(50)
+          .describe("Maximum products to return when `includeProducts` is true."),
+      },
+      annotations: { readOnlyHint: true },
     },
     async ({ id, handle, includeProducts, productsFirst }) =>
       wrap(async () => {

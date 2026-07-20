@@ -11,23 +11,27 @@ import {
 import { afterArg, firstArg, wrap } from "./util.js";
 
 export const registerVariantTools = (server: McpServer, client: ShopifyGraphQLClient): void => {
-  server.tool(
+  server.registerTool(
     "list_product_variants",
-    "List product variants. If `productId` is set, returns that product's variants; " +
-      'otherwise performs a store-wide variant search using `query` (e.g. "sku:ABC-123").',
     {
-      productId: z
-        .string()
-        .optional()
-        .describe("Product ID (numeric or gid). When set, lists this product's variants."),
-      query: z
-        .string()
-        .optional()
-        .describe(
-          'Shopify search query for store-wide search when `productId` is omitted, e.g. "sku:ABC-123".',
-        ),
-      first: firstArg,
-      after: afterArg,
+      description:
+        "List product variants. If `productId` is set, returns that product's variants; " +
+        'otherwise performs a store-wide variant search using `query` (e.g. "sku:ABC-123").',
+      inputSchema: {
+        productId: z
+          .string()
+          .optional()
+          .describe("Product ID (numeric or gid). When set, lists this product's variants."),
+        query: z
+          .string()
+          .optional()
+          .describe(
+            'Shopify search query for store-wide search when `productId` is omitted, e.g. "sku:ABC-123".',
+          ),
+        first: firstArg,
+        after: afterArg,
+      },
+      annotations: { readOnlyHint: true },
     },
     async ({ productId, query, first, after }) =>
       wrap(() => {
@@ -42,13 +46,17 @@ export const registerVariantTools = (server: McpServer, client: ShopifyGraphQLCl
       }),
   );
 
-  server.tool(
+  server.registerTool(
     "get_product_variant",
-    "Get a single product variant with full detail (price, SKU, selected options, inventory item).",
     {
-      id: z
-        .string()
-        .describe("Variant ID — numeric or a gid (gid://shopify/ProductVariant/1234567890)."),
+      description:
+        "Get a single product variant with full detail (price, SKU, selected options, inventory item).",
+      inputSchema: {
+        id: z
+          .string()
+          .describe("Variant ID — numeric or a gid (gid://shopify/ProductVariant/1234567890)."),
+      },
+      annotations: { readOnlyHint: true },
     },
     async ({ id }) =>
       wrap(() => client.request(VARIANT_BY_ID_QUERY, { id: toGid("ProductVariant", id) })),

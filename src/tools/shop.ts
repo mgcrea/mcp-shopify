@@ -5,11 +5,15 @@ import { SHOP_QUERY } from "../client/queries/shop.js";
 import { wrap } from "./util.js";
 
 export const registerShopTools = (server: McpServer, client: ShopifyGraphQLClient): void => {
-  server.tool(
+  server.registerTool(
     "get_shop",
-    "Get shop-level settings: name, primary domain, currency, timezone, unit system, plan, " +
-      "and resource limits. Useful for understanding the store's overall configuration.",
-    {},
+    {
+      description:
+        "Get shop-level settings: name, primary domain, currency, timezone, unit system, plan, " +
+        "and resource limits. Useful for understanding the store's overall configuration.",
+      inputSchema: {},
+      annotations: { readOnlyHint: true },
+    },
     async () => wrap(() => client.request(SHOP_QUERY)),
   );
 };

@@ -7,26 +7,34 @@ import { LOCATIONS_QUERY, VARIANT_INVENTORY_QUERY } from "../client/queries/inve
 import { afterArg, firstArg, wrap } from "./util.js";
 
 export const registerInventoryTools = (server: McpServer, client: ShopifyGraphQLClient): void => {
-  server.tool(
+  server.registerTool(
     "list_locations",
-    "List the store's locations (warehouses, retail stores) used for inventory and fulfillment.",
-    { first: firstArg, after: afterArg },
+    {
+      description:
+        "List the store's locations (warehouses, retail stores) used for inventory and fulfillment.",
+      inputSchema: { first: firstArg, after: afterArg },
+      annotations: { readOnlyHint: true },
+    },
     async ({ first, after }) => wrap(() => client.request(LOCATIONS_QUERY, { first, after })),
   );
 
-  server.tool(
+  server.registerTool(
     "get_variant_inventory",
-    "Get inventory levels for a product variant across all locations (available, on hand, " +
-      "committed, incoming, reserved, damaged).",
     {
-      variantId: z.string().describe("Variant ID — numeric or gid."),
-      first: z
-        .number()
-        .int()
-        .min(1)
-        .max(250)
-        .default(50)
-        .describe("Maximum number of locations / inventory levels to return."),
+      description:
+        "Get inventory levels for a product variant across all locations (available, on hand, " +
+        "committed, incoming, reserved, damaged).",
+      inputSchema: {
+        variantId: z.string().describe("Variant ID — numeric or gid."),
+        first: z
+          .number()
+          .int()
+          .min(1)
+          .max(250)
+          .default(50)
+          .describe("Maximum number of locations / inventory levels to return."),
+      },
+      annotations: { readOnlyHint: true },
     },
     async ({ variantId, first }) =>
       wrap(() =>
