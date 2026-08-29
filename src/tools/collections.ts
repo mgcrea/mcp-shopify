@@ -12,7 +12,7 @@ import { afterArg, firstArg, wrap } from "./util.js";
 
 export const registerCollectionTools = (server: McpServer, client: ShopifyGraphQLClient): void => {
   server.registerTool(
-    "list_collections",
+    "shopify_list_collections",
     {
       description:
         "List collections (custom and smart) with cursor pagination. Use `query` for Shopify " +
@@ -32,7 +32,7 @@ export const registerCollectionTools = (server: McpServer, client: ShopifyGraphQ
   );
 
   server.registerTool(
-    "get_collection",
+    "shopify_get_collection",
     {
       description:
         "Get a single collection with detail (rule set for smart collections, SEO). Provide " +

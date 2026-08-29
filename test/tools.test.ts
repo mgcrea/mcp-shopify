@@ -20,7 +20,13 @@ const listTools = async (): Promise<Awaited<ReturnType<Client["listTools"]>>["to
     apiVersion: "2026-04",
     fetch: vi.fn(async () => new Response("{}", { status: 200 })) as unknown as typeof fetch,
   });
-  registerTools(server, client, "2026-04");
+  registerTools(server, client, {
+    storeDomain: "test.myshopify.com",
+    clientId: "id",
+    clientSecret: "secret",
+    apiVersion: "2026-04",
+    maxRetries: 3,
+  });
 
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const mcp = new Client({ name: "test", version: "0.0.0" });
@@ -33,25 +39,27 @@ describe("tool registration", () => {
     const names = (await listTools()).map((tool) => tool.name);
     expect(names).toEqual(
       expect.arrayContaining([
-        "list_products",
-        "get_product",
-        "list_product_variants",
-        "get_product_variant",
-        "get_product_metafields",
-        "get_variant_metafields",
-        "list_metafield_definitions",
-        "list_collections",
-        "get_collection",
-        "list_locations",
-        "get_variant_inventory",
-        "get_shop",
+        "shopify_list_products",
+        "shopify_get_product",
+        "shopify_list_product_variants",
+        "shopify_get_product_variant",
+        "shopify_get_product_metafields",
+        "shopify_get_variant_metafields",
+        "shopify_list_metafield_definitions",
+        "shopify_list_collections",
+        "shopify_get_collection",
+        "shopify_list_locations",
+        "shopify_get_variant_inventory",
+        "shopify_get_shop",
         "shopify_graphql",
       ]),
     );
   });
 
-  it("registers exactly 13 tools", async () => {
-    expect(await listTools()).toHaveLength(13);
+  it("registers exactly 14 tools", async () => {
+    // 13 query tools plus shopify_auth_status, which is registered
+    // unconditionally so an unconfigured server can still explain itself.
+    expect(await listTools()).toHaveLength(14);
   });
 
   // The README's first blast-radius claim is that this server is read-only by

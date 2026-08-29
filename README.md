@@ -1,5 +1,12 @@
 # @mgcrea/mcp-shopify
 
+> **Breaking in 0.4.0 — every tool is now prefixed `shopify_`.**
+> `list_products` is `shopify_list_products`, `get_order` is `shopify_get_order`, and so on.
+> MCP servers share one flat tool namespace in the client, and the old unprefixed names
+> collided with other servers' — `get_quote` and `cancel_order` existed in three of these
+> repos at once, and whichever loaded last silently won. Update any saved prompts or
+> allowlists that name a tool.
+
 [![npm version](https://img.shields.io/npm/v/@mgcrea/mcp-shopify.svg?style=for-the-badge)](https://www.npmjs.com/package/@mgcrea/mcp-shopify)
 [![GHCR](https://img.shields.io/badge/ghcr.io-container_image-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://github.com/mgcrea/mcp-shopify/pkgs/container/mcp-shopify)
 
@@ -214,21 +221,21 @@ npx @modelcontextprotocol/inspector npx -y @mgcrea/mcp-shopify
 
 ## Tools
 
-| Tool                         | Purpose                                                                   |
-| ---------------------------- | ------------------------------------------------------------------------- |
-| `list_products`              | Paginated product list; `query` accepts Shopify search syntax.            |
-| `get_product`                | A single product by `id` or `handle`, with full detail.                   |
-| `list_product_variants`      | Variants of a product, or a store-wide variant search.                    |
-| `get_product_variant`        | A single variant by `id`.                                                 |
-| `get_product_metafields`     | Metafields attached to a product.                                         |
-| `get_variant_metafields`     | Metafields attached to a variant.                                         |
-| `list_metafield_definitions` | Metafield definitions for an owner type — the store's custom-data schema. |
-| `list_collections`           | Paginated collection list.                                                |
-| `get_collection`             | A single collection by `id` or `handle`, optionally with member products. |
-| `list_locations`             | The store's locations / warehouses.                                       |
-| `get_variant_inventory`      | Inventory levels for a variant across all locations.                      |
-| `get_shop`                   | Shop-level settings (name, currency, plan, limits, …).                    |
-| `shopify_graphql`            | Run an arbitrary read-only GraphQL query (mutations rejected).            |
+| Tool                                 | Purpose                                                                   |
+| ------------------------------------ | ------------------------------------------------------------------------- |
+| `shopify_list_products`              | Paginated product list; `query` accepts Shopify search syntax.            |
+| `shopify_get_product`                | A single product by `id` or `handle`, with full detail.                   |
+| `shopify_list_product_variants`      | Variants of a product, or a store-wide variant search.                    |
+| `shopify_get_product_variant`        | A single variant by `id`.                                                 |
+| `shopify_get_product_metafields`     | Metafields attached to a product.                                         |
+| `shopify_get_variant_metafields`     | Metafields attached to a variant.                                         |
+| `shopify_list_metafield_definitions` | Metafield definitions for an owner type — the store's custom-data schema. |
+| `shopify_list_collections`           | Paginated collection list.                                                |
+| `shopify_get_collection`             | A single collection by `id` or `handle`, optionally with member products. |
+| `shopify_list_locations`             | The store's locations / warehouses.                                       |
+| `shopify_get_variant_inventory`      | Inventory levels for a variant across all locations.                      |
+| `shopify_get_shop`                   | Shop-level settings (name, currency, plan, limits, …).                    |
+| `shopify_graphql`                    | Run an arbitrary read-only GraphQL query (mutations rejected).            |
 
 All list tools use cursor pagination: pass `pageInfo.endCursor` from one call as the `after`
 argument of the next.

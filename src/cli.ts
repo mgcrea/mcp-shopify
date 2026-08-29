@@ -2,7 +2,7 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
 import { BUILD_INFO } from "./build-info.js";
-import { loadConfig } from "./config.js";
+import { isConfigured, loadConfig, setupInstructions } from "./config.js";
 import { createServer } from "./server.js";
 
 const stderrLogger = {
@@ -24,6 +24,10 @@ const main = async (): Promise<void> => {
   stderrLogger.warn(
     `shopify-mcp connected (store=${config.storeDomain}, api=${config.apiVersion})`,
   );
+  if (!isConfigured(config)) {
+    stderrLogger.warn("  not configured — only shopify_auth_status is available:");
+    for (const line of setupInstructions(config)) stderrLogger.warn(`  ${line}`);
+  }
 
   const shutdown = (signal: string): void => {
     stderrLogger.warn(`received ${signal}, shutting down`);

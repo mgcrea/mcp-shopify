@@ -42,6 +42,20 @@ jobs:
         run: pnpm run test
       - name: Build 📦
         run: pnpm run build
+      # The tool list is the server's public contract and is easy to change by
+      # accident. Run with NO credentials: the server must still speak MCP over
+      # stdio and answer tools/list. A server that exits here shows in the client
+      # as a bare "Connection closed" with stderr swallowed, so nothing explains
+      # what to configure.
+      - name: MCP smoke test 🧪
+        run: |
+          printf '%s\n' \
+            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
+            '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+            '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
+          | env SHOPIFY_CONFIG=/nonexistent.json HOME=/nonexistent node dist/cli.js 2>/dev/null > /tmp/tools.json
+          grep -q 'shopify_auth_status' /tmp/tools.json \
+            || { echo "server did not answer tools/list without credentials"; exit 1; }
 
   publish-npm:
     name: Publish to npm

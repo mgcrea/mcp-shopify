@@ -12,7 +12,7 @@ import { afterArg, firstArg, wrap } from "./util.js";
 
 export const registerVariantTools = (server: McpServer, client: ShopifyGraphQLClient): void => {
   server.registerTool(
-    "list_product_variants",
+    "shopify_list_product_variants",
     {
       description:
         "List product variants. If `productId` is set, returns that product's variants; " +
@@ -47,7 +47,7 @@ export const registerVariantTools = (server: McpServer, client: ShopifyGraphQLCl
   );
 
   server.registerTool(
-    "get_product_variant",
+    "shopify_get_product_variant",
     {
       description:
         "Get a single product variant with full detail (price, SKU, selected options, inventory item).",

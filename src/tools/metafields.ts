@@ -31,7 +31,7 @@ const OWNER_TYPES = [
 
 export const registerMetafieldTools = (server: McpServer, client: ShopifyGraphQLClient): void => {
   server.registerTool(
-    "get_product_metafields",
+    "shopify_get_product_metafields",
     {
       description:
         "List metafields attached to a product — custom data such as specs, badges, or related " +
@@ -59,7 +59,7 @@ export const registerMetafieldTools = (server: McpServer, client: ShopifyGraphQL
   );
 
   server.registerTool(
-    "get_variant_metafields",
+    "shopify_get_variant_metafields",
     {
       description:
         "List metafields attached to a product variant. Optionally filter by `namespace`.",
@@ -83,7 +83,7 @@ export const registerMetafieldTools = (server: McpServer, client: ShopifyGraphQL
   );
 
   server.registerTool(
-    "list_metafield_definitions",
+    "shopify_list_metafield_definitions",
     {
       description:
         "List metafield definitions for a given owner type — the store's custom-data schema. " +

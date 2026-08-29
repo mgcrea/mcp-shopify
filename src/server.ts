@@ -23,15 +23,18 @@ export type CreatedServer = {
 
 export const createServer = (opts: CreateServerOptions): CreatedServer => {
   const server = new McpServer({ name: SERVER_NAME, version: SERVER_VERSION });
+  // Placeholders when unconfigured: the client is built either way so
+  // `createServer` stays total, but no API-calling tool is registered, so it is
+  // never actually asked for a token.
   const tokenProvider = createClientCredentialsTokenProvider({
-    storeDomain: opts.config.storeDomain,
-    clientId: opts.config.clientId,
-    clientSecret: opts.config.clientSecret,
+    storeDomain: opts.config.storeDomain ?? "",
+    clientId: opts.config.clientId ?? "",
+    clientSecret: opts.config.clientSecret ?? "",
     ...(opts.fetch ? { fetch: opts.fetch } : {}),
     ...(opts.logger ? { logger: opts.logger } : {}),
   });
   const client = new ShopifyGraphQLClient({
-    storeDomain: opts.config.storeDomain,
+    storeDomain: opts.config.storeDomain ?? "",
     tokenProvider,
     apiVersion: opts.config.apiVersion,
     maxRetries: opts.config.maxRetries,
@@ -39,6 +42,6 @@ export const createServer = (opts: CreateServerOptions): CreatedServer => {
     ...(opts.fetch ? { fetch: opts.fetch } : {}),
     ...(opts.logger ? { logger: opts.logger } : {}),
   });
-  registerTools(server, client, opts.config.apiVersion);
+  registerTools(server, client, opts.config);
   return { server, client };
 };

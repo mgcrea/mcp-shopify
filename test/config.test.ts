@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { loadConfig, normalizeStoreDomain } from "../src/config.js";
+import {
+  loadConfig,
+  normalizeStoreDomain,
+  isConfigured,
+  setupInstructions,
+} from "../src/config.js";
 
 describe("normalizeStoreDomain", () => {
   it("strips protocol and path", () => {
@@ -19,20 +24,28 @@ describe("normalizeStoreDomain", () => {
 });
 
 describe("loadConfig", () => {
-  it("requires store domain, api key and api secret", () => {
-    expect(() => loadConfig({} as NodeJS.ProcessEnv)).toThrow();
-    expect(() =>
-      loadConfig({
-        SHOPIFY_STORE_DOMAIN: "my-store",
-        SHOPIFY_CLIENT_ID: "id",
-      } as NodeJS.ProcessEnv),
-    ).toThrow(/clientSecret/);
-    expect(() =>
-      loadConfig({
-        SHOPIFY_STORE_DOMAIN: "my-store",
-        SHOPIFY_CLIENT_SECRET: "shpss_x",
-      } as NodeJS.ProcessEnv),
-    ).toThrow(/clientId/);
+  // This used to assert that loadConfig throws. It deliberately no longer does:
+  // a server that exits at startup surfaces in the client as a bare
+  // "MCP error -32000: Connection closed" with stderr swallowed, so the message
+  // explaining what to configure never reaches anyone. Missing configuration is
+  // now a state, reported through shopify_auth_status.
+  it("does not throw when nothing is configured, so the server can still start", () => {
+    const cfg = loadConfig({} as NodeJS.ProcessEnv);
+    expect(isConfigured(cfg)).toBe(false);
+    const steps = setupInstructions(cfg).join(" ");
+    expect(steps).toContain("SHOPIFY_STORE_DOMAIN");
+    expect(steps).toContain("SHOPIFY_CLIENT_ID");
+    expect(steps).toContain("SHOPIFY_CLIENT_SECRET");
+  });
+
+  it("reports configured once all three are present", () => {
+    const cfg = loadConfig({
+      SHOPIFY_STORE_DOMAIN: "my-store",
+      SHOPIFY_CLIENT_ID: "id",
+      SHOPIFY_CLIENT_SECRET: "secret",
+    } as NodeJS.ProcessEnv);
+    expect(isConfigured(cfg)).toBe(true);
+    expect(setupInstructions(cfg)).toEqual([]);
   });
 
   it("applies defaults", () => {

@@ -26,7 +26,13 @@ const connect = async (fetchImpl: ReturnType<typeof vi.fn>): Promise<Client> => 
     apiVersion: "2026-04",
     fetch: fetchImpl as unknown as typeof fetch,
   });
-  registerTools(server, client, "2026-04");
+  registerTools(server, client, {
+    storeDomain: "test.myshopify.com",
+    clientId: "id",
+    clientSecret: "secret",
+    apiVersion: "2026-04",
+    maxRetries: 3,
+  });
 
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const mcp = new Client({ name: "test", version: "0.0.0" });
@@ -46,14 +52,14 @@ const lastRequest = (
 const payload = <T = Record<string, unknown>>(result: Awaited<ReturnType<Client["callTool"]>>): T =>
   JSON.parse((result.content as { text: string }[])[0]!.text) as T;
 
-describe("list_products", () => {
+describe("shopify_list_products", () => {
   it("posts to the versioned admin endpoint with the pagination variables", async () => {
     const fetchImpl = vi.fn(async () =>
       graphqlResponse({ data: { products: { nodes: [{ id: "gid://shopify/Product/1" }] } } }),
     );
     const mcp = await connect(fetchImpl);
 
-    const result = await mcp.callTool({ name: "list_products", arguments: { first: 10 } });
+    const result = await mcp.callTool({ name: "shopify_list_products", arguments: { first: 10 } });
 
     const { url, body } = lastRequest(fetchImpl);
     expect(url).toBe("https://test.myshopify.com/admin/api/2026-04/graphql.json");
@@ -69,7 +75,7 @@ describe("list_products", () => {
     const fetchImpl = vi.fn(async () => graphqlResponse({ data: { products: { nodes: [] } } }));
     const mcp = await connect(fetchImpl);
 
-    await mcp.callTool({ name: "list_products", arguments: {} });
+    await mcp.callTool({ name: "shopify_list_products", arguments: {} });
 
     expect(lastRequest(fetchImpl).body.variables!.first).toBe(50);
   });
@@ -79,7 +85,7 @@ describe("list_products", () => {
     const mcp = await connect(fetchImpl);
 
     await mcp.callTool({
-      name: "list_products",
+      name: "shopify_list_products",
       arguments: { query: "status:active", sortKey: "UPDATED_AT" },
     });
 
@@ -90,12 +96,12 @@ describe("list_products", () => {
   });
 });
 
-describe("get_product", () => {
+describe("shopify_get_product", () => {
   it("normalizes a numeric id into a gid", async () => {
     const fetchImpl = vi.fn(async () => graphqlResponse({ data: { product: { id: "x" } } }));
     const mcp = await connect(fetchImpl);
 
-    await mcp.callTool({ name: "get_product", arguments: { id: "1234567890" } });
+    await mcp.callTool({ name: "shopify_get_product", arguments: { id: "1234567890" } });
 
     expect(lastRequest(fetchImpl).body.variables!.id).toBe("gid://shopify/Product/1234567890");
   });
@@ -105,7 +111,7 @@ describe("get_product", () => {
     const mcp = await connect(fetchImpl);
 
     await mcp.callTool({
-      name: "get_product",
+      name: "shopify_get_product",
       arguments: { id: "gid://shopify/Product/55" },
     });
 
@@ -116,7 +122,7 @@ describe("get_product", () => {
     const fetchImpl = vi.fn(async () => graphqlResponse({ data: { productByHandle: {} } }));
     const mcp = await connect(fetchImpl);
 
-    await mcp.callTool({ name: "get_product", arguments: { handle: "blue-shirt" } });
+    await mcp.callTool({ name: "shopify_get_product", arguments: { handle: "blue-shirt" } });
 
     const { body } = lastRequest(fetchImpl);
     expect(body.variables).toEqual({ handle: "blue-shirt" });
@@ -126,7 +132,7 @@ describe("get_product", () => {
     const fetchImpl = vi.fn(async () => graphqlResponse({ data: {} }));
     const mcp = await connect(fetchImpl);
 
-    const result = await mcp.callTool({ name: "get_product", arguments: {} });
+    const result = await mcp.callTool({ name: "shopify_get_product", arguments: {} });
 
     expect(result.isError).toBe(true);
     expect(payload<{ error: string }>(result).error).toContain("Provide either");
@@ -185,7 +191,7 @@ describe("GraphQL error surfacing", () => {
     );
     const mcp = await connect(fetchImpl);
 
-    const result = await mcp.callTool({ name: "get_shop", arguments: {} });
+    const result = await mcp.callTool({ name: "shopify_get_shop", arguments: {} });
 
     expect(result.isError).toBe(true);
     expect(JSON.stringify(payload(result))).toContain("nope");

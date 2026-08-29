@@ -6,7 +6,7 @@ import { wrap } from "./util.js";
 
 export const registerShopTools = (server: McpServer, client: ShopifyGraphQLClient): void => {
   server.registerTool(
-    "get_shop",
+    "shopify_get_shop",
     {
       description:
         "Get shop-level settings: name, primary domain, currency, timezone, unit system, plan, " +

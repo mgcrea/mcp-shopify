@@ -8,7 +8,7 @@ import { afterArg, firstArg, wrap } from "./util.js";
 
 export const registerInventoryTools = (server: McpServer, client: ShopifyGraphQLClient): void => {
   server.registerTool(
-    "list_locations",
+    "shopify_list_locations",
     {
       description:
         "List the store's locations (warehouses, retail stores) used for inventory and fulfillment.",
@@ -19,7 +19,7 @@ export const registerInventoryTools = (server: McpServer, client: ShopifyGraphQL
   );
 
   server.registerTool(
-    "get_variant_inventory",
+    "shopify_get_variant_inventory",
     {
       description:
         "Get inventory levels for a product variant across all locations (available, on hand, " +

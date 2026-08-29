@@ -12,7 +12,7 @@ import { afterArg, firstArg, wrap } from "./util.js";
 
 export const registerProductTools = (server: McpServer, client: ShopifyGraphQLClient): void => {
   server.registerTool(
-    "list_products",
+    "shopify_list_products",
     {
       description:
         "List products in the store with cursor pagination. Use `query` for Shopify's search syntax " +
@@ -46,7 +46,7 @@ export const registerProductTools = (server: McpServer, client: ShopifyGraphQLCl
   );
 
   server.registerTool(
-    "get_product",
+    "shopify_get_product",
     {
       description:
         "Get a single product with full detail (options, category, price range, SEO). " +
