@@ -30,6 +30,7 @@ export const registerGraphqlTool = (
   server.registerTool(
     "shopify_graphql",
     {
+      title: "Shopify: GraphQL",
       description:
         `Run an arbitrary read-only query against the Shopify Admin GraphQL API (version ${apiVersion}). ` +
         "Use this as an escape hatch when no curated tool fits — for example to explore orders, " +

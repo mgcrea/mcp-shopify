@@ -14,6 +14,7 @@ export const registerProductTools = (server: McpServer, client: ShopifyGraphQLCl
   server.registerTool(
     "shopify_list_products",
     {
+      title: "Shopify: List Products",
       description:
         "List products in the store with cursor pagination. Use `query` for Shopify's search syntax " +
         '(e.g. "status:active vendor:Acme product_type:Shoes", "title:shirt", "created_at:>2024-01-01").',
@@ -48,6 +49,7 @@ export const registerProductTools = (server: McpServer, client: ShopifyGraphQLCl
   server.registerTool(
     "shopify_get_product",
     {
+      title: "Shopify: Get Product",
       description:
         "Get a single product with full detail (options, category, price range, SEO). " +
         "Provide either `id` or `handle`.",

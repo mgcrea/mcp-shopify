@@ -30,6 +30,7 @@ export const registerMetafieldTools = (server: McpServer, client: ShopifyGraphQL
   server.registerTool(
     "shopify_get_product_metafields",
     {
+      title: "Shopify: Get Product Metafields",
       description:
         "List metafields attached to a product — custom data such as specs, badges, or related " +
         "content. Optionally filter by `namespace`.",
@@ -58,6 +59,7 @@ export const registerMetafieldTools = (server: McpServer, client: ShopifyGraphQL
   server.registerTool(
     "shopify_get_variant_metafields",
     {
+      title: "Shopify: Get Variant Metafields",
       description:
         "List metafields attached to a product variant. Optionally filter by `namespace`.",
       inputSchema: {
@@ -82,6 +84,7 @@ export const registerMetafieldTools = (server: McpServer, client: ShopifyGraphQL
   server.registerTool(
     "shopify_list_metafield_definitions",
     {
+      title: "Shopify: List Metafield Definitions",
       description:
         "List metafield definitions for a given owner type — the store's custom-data schema. " +
         "This reveals which metafields exist, their keys, namespaces, and value types. Start " +

@@ -8,6 +8,7 @@ export const registerShopTools = (server: McpServer, client: ShopifyGraphQLClien
   server.registerTool(
     "shopify_get_shop",
     {
+      title: "Shopify: Get Shop",
       description:
         "Get shop-level settings: name, primary domain, currency, timezone, unit system, plan, " +
         "and resource limits. Useful for understanding the store's overall configuration.",

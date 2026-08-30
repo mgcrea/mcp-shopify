@@ -14,6 +14,7 @@ export const registerVariantTools = (server: McpServer, client: ShopifyGraphQLCl
   server.registerTool(
     "shopify_list_product_variants",
     {
+      title: "Shopify: List Product Variants",
       description:
         "List product variants. If `productId` is set, returns that product's variants; " +
         'otherwise performs a store-wide variant search using `query` (e.g. "sku:ABC-123").',
@@ -49,6 +50,7 @@ export const registerVariantTools = (server: McpServer, client: ShopifyGraphQLCl
   server.registerTool(
     "shopify_get_product_variant",
     {
+      title: "Shopify: Get Product Variant",
       description:
         "Get a single product variant with full detail (price, SKU, selected options, inventory item).",
       inputSchema: {

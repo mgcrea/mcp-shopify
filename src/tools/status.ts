@@ -12,6 +12,7 @@ export const registerStatusTool = (server: McpServer, config: Config): void => {
   server.registerTool(
     "shopify_auth_status",
     {
+      title: "Shopify: Auth Status",
       description:
         "Report whether this server has working Shopify credentials, which store and API " +
         "version it targets, and — when something is missing — exactly what to set. Call this " +

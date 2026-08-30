@@ -14,6 +14,7 @@ export const registerCollectionTools = (server: McpServer, client: ShopifyGraphQ
   server.registerTool(
     "shopify_list_collections",
     {
+      title: "Shopify: List Collections",
       description:
         "List collections (custom and smart) with cursor pagination. Use `query` for Shopify " +
         'search syntax, e.g. "title:Summer".',
@@ -34,6 +35,7 @@ export const registerCollectionTools = (server: McpServer, client: ShopifyGraphQ
   server.registerTool(
     "shopify_get_collection",
     {
+      title: "Shopify: Get Collection",
       description:
         "Get a single collection with detail (rule set for smart collections, SEO). Provide " +
         "either `id` or `handle`. Set `includeProducts` to also list member products.",

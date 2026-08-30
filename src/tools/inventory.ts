@@ -10,6 +10,7 @@ export const registerInventoryTools = (server: McpServer, client: ShopifyGraphQL
   server.registerTool(
     "shopify_list_locations",
     {
+      title: "Shopify: List Locations",
       description:
         "List the store's locations (warehouses, retail stores) used for inventory and fulfillment.",
       inputSchema: { first: firstArg, after: afterArg },
@@ -21,6 +22,7 @@ export const registerInventoryTools = (server: McpServer, client: ShopifyGraphQL
   server.registerTool(
     "shopify_get_variant_inventory",
     {
+      title: "Shopify: Get Variant Inventory",
       description:
         "Get inventory levels for a product variant across all locations (available, on hand, " +
         "committed, incoming, reserved, damaged).",
