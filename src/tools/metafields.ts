@@ -1,14 +1,11 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
-import { toGid } from "../client/gid.js";
-import type { ShopifyGraphQLClient } from "../client/graphql.js";
-import { METAFIELD_DEFINITIONS_QUERY } from "../client/queries/metafield-definitions.js";
-import {
-  PRODUCT_METAFIELDS_QUERY,
-  VARIANT_METAFIELDS_QUERY,
-} from "../client/queries/metafields.js";
-import { afterArg, firstArg, wrap } from "./util.js";
+import { toGid } from "#/client/gid";
+import type { ShopifyGraphQLClient } from "#/client/graphql";
+import { METAFIELD_DEFINITIONS_QUERY } from "#/client/queries/metafield-definitions";
+import { PRODUCT_METAFIELDS_QUERY, VARIANT_METAFIELDS_QUERY } from "#/client/queries/metafields";
+import { afterArg, firstArg, wrap } from "#/tools/util";
 
 // MetafieldOwnerType values most relevant to understanding a store's data model.
 const OWNER_TYPES = [

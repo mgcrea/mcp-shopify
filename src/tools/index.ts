@@ -1,15 +1,15 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-import type { ShopifyGraphQLClient } from "../client/graphql.js";
-import { isConfigured, type Config } from "../config.js";
-import { registerCollectionTools } from "./collections.js";
-import { registerGraphqlTool } from "./graphql.js";
-import { registerInventoryTools } from "./inventory.js";
-import { registerMetafieldTools } from "./metafields.js";
-import { registerProductTools } from "./products.js";
-import { registerShopTools } from "./shop.js";
-import { registerStatusTool } from "./status.js";
-import { registerVariantTools } from "./variants.js";
+import type { ShopifyGraphQLClient } from "#/client/graphql";
+import { isConfigured, type Config } from "#/config";
+import { registerCollectionTools } from "#/tools/collections";
+import { registerGraphqlTool } from "#/tools/graphql";
+import { registerInventoryTools } from "#/tools/inventory";
+import { registerMetafieldTools } from "#/tools/metafields";
+import { registerProductTools } from "#/tools/products";
+import { registerShopTools } from "#/tools/shop";
+import { registerStatusTool } from "#/tools/status";
+import { registerVariantTools } from "#/tools/variants";
 
 /**
  * Register every read-only Shopify tool.

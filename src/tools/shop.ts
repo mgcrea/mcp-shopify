@@ -1,8 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-import type { ShopifyGraphQLClient } from "../client/graphql.js";
-import { SHOP_QUERY } from "../client/queries/shop.js";
-import { wrap } from "./util.js";
+import type { ShopifyGraphQLClient } from "#/client/graphql";
+import { SHOP_QUERY } from "#/client/queries/shop";
+import { wrap } from "#/tools/util";
 
 export const registerShopTools = (server: McpServer, client: ShopifyGraphQLClient): void => {
   server.registerTool(

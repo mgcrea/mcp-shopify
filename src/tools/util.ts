@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ShopifyApiError } from "../client/errors.js";
+import { ShopifyApiError } from "#/client/errors";
 
 export type ToolResult = {
   content: { type: "text"; text: string }[];

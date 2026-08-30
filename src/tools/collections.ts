@@ -1,14 +1,14 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
-import { toGid } from "../client/gid.js";
-import type { ShopifyGraphQLClient } from "../client/graphql.js";
+import { toGid } from "#/client/gid";
+import type { ShopifyGraphQLClient } from "#/client/graphql";
 import {
   COLLECTION_BY_HANDLE_QUERY,
   COLLECTION_BY_ID_QUERY,
   COLLECTIONS_QUERY,
-} from "../client/queries/collections.js";
-import { afterArg, firstArg, wrap } from "./util.js";
+} from "#/client/queries/collections";
+import { afterArg, firstArg, wrap } from "#/tools/util";
 
 export const registerCollectionTools = (server: McpServer, client: ShopifyGraphQLClient): void => {
   server.registerTool(

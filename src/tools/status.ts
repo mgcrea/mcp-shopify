@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-import { isConfigured, setupInstructions, type Config } from "../config.js";
-import { wrap } from "./util.js";
+import { isConfigured, setupInstructions, type Config } from "#/config";
+import { wrap } from "#/tools/util";
 
 /**
  * Registered unconditionally, before any credential check, so an unconfigured

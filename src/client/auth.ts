@@ -1,4 +1,4 @@
-import { ShopifyApiError } from "./errors.js";
+import { ShopifyApiError } from "#/client/errors";
 
 export type Logger = {
   debug?(...args: unknown[]): void;

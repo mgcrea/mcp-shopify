@@ -1,14 +1,14 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
-import { toGid } from "../client/gid.js";
-import type { ShopifyGraphQLClient } from "../client/graphql.js";
+import { toGid } from "#/client/gid";
+import type { ShopifyGraphQLClient } from "#/client/graphql";
 import {
   PRODUCT_VARIANTS_QUERY,
   VARIANT_BY_ID_QUERY,
   VARIANTS_SEARCH_QUERY,
-} from "../client/queries/variants.js";
-import { afterArg, firstArg, wrap } from "./util.js";
+} from "#/client/queries/variants";
+import { afterArg, firstArg, wrap } from "#/tools/util";
 
 export const registerVariantTools = (server: McpServer, client: ShopifyGraphQLClient): void => {
   server.registerTool(

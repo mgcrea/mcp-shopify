@@ -1,5 +1,5 @@
-import type { TokenProvider } from "./auth.js";
-import { ShopifyApiError } from "./errors.js";
+import type { TokenProvider } from "#/client/auth";
+import { ShopifyApiError } from "#/client/errors";
 
 export type Logger = {
   debug?(...args: unknown[]): void;

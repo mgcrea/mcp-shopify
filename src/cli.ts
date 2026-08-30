@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
-import { BUILD_INFO } from "./build-info.js";
-import { isConfigured, loadConfig, setupInstructions } from "./config.js";
-import { createServer } from "./server.js";
+import { BUILD_INFO } from "#/build-info";
+import { isConfigured, loadConfig, setupInstructions } from "#/config";
+import { createServer } from "#/server";
 
 const stderrLogger = {
   debug: (...args: unknown[]) => {

@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  loadConfig,
-  normalizeStoreDomain,
-  isConfigured,
-  setupInstructions,
-} from "../src/config.js";
+import { loadConfig, normalizeStoreDomain, isConfigured, setupInstructions } from "#/config";
 
 describe("normalizeStoreDomain", () => {
   it("strips protocol and path", () => {

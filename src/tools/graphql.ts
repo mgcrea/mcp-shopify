@@ -1,8 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
-import type { ShopifyGraphQLClient } from "../client/graphql.js";
-import { wrap } from "./util.js";
+import type { ShopifyGraphQLClient } from "#/client/graphql";
+import { wrap } from "#/tools/util";
 
 /**
  * Reject any GraphQL document that contains a `mutation` or `subscription`

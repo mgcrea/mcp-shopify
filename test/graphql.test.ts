@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { staticTokenProvider, type TokenProvider } from "../src/client/auth.js";
-import { ShopifyApiError } from "../src/client/errors.js";
-import { ShopifyGraphQLClient } from "../src/client/graphql.js";
-import { assertReadOnly } from "../src/tools/graphql.js";
+import { staticTokenProvider, type TokenProvider } from "#/client/auth";
+import { ShopifyApiError } from "#/client/errors";
+import { ShopifyGraphQLClient } from "#/client/graphql";
+import { assertReadOnly } from "#/tools/graphql";
 
 const jsonResponse = (body: unknown, init?: ResponseInit): Response =>
   new Response(JSON.stringify(body), {

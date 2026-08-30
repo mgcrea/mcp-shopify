@@ -5,9 +5,9 @@ export {
   USER_AGENT,
   type CreateServerOptions,
   type CreatedServer,
-} from "./server.js";
-export { loadConfig, normalizeStoreDomain, type Config } from "./config.js";
-export { ShopifyGraphQLClient, type GraphQLClientOptions, type Logger } from "./client/graphql.js";
+} from "#/server";
+export { loadConfig, normalizeStoreDomain, type Config } from "#/config";
+export { ShopifyGraphQLClient, type GraphQLClientOptions, type Logger } from "#/client/graphql";
 export {
   createClientCredentialsTokenProvider,
   requestAccessToken,
@@ -16,5 +16,5 @@ export {
   type ClientCredentialsTokenProviderOptions,
   type RequestAccessTokenOptions,
   type TokenProvider,
-} from "./client/auth.js";
-export { ShopifyApiError } from "./client/errors.js";
+} from "#/client/auth";
+export { ShopifyApiError } from "#/client/errors";

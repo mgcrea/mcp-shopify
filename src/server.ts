@@ -1,10 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-import { BUILD_INFO } from "./build-info.js";
-import { createClientCredentialsTokenProvider } from "./client/auth.js";
-import { ShopifyGraphQLClient, type Logger } from "./client/graphql.js";
-import type { Config } from "./config.js";
-import { registerTools } from "./tools/index.js";
+import { BUILD_INFO } from "#/build-info";
+import { createClientCredentialsTokenProvider } from "#/client/auth";
+import { ShopifyGraphQLClient, type Logger } from "#/client/graphql";
+import type { Config } from "#/config";
+import { registerTools } from "#/tools/index";
 
 export const SERVER_NAME = BUILD_INFO.name;
 export const SERVER_VERSION = BUILD_INFO.version;

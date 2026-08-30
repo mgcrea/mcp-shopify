@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { ShopifyApiError } from "../src/client/errors.js";
-import { toGid, parseGid } from "../src/client/gid.js";
-import { afterArg, fail, firstArg, ok, wrap } from "../src/tools/util.js";
+import { ShopifyApiError } from "#/client/errors";
+import { toGid, parseGid } from "#/client/gid";
+import { afterArg, fail, firstArg, ok, wrap } from "#/tools/util";
 
 const payload = (result: { content: { text: string }[] }): unknown =>
   JSON.parse(result.content[0]!.text);

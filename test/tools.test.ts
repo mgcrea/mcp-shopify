@@ -3,9 +3,9 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { describe, expect, it, vi } from "vitest";
 
-import { staticTokenProvider } from "../src/client/auth.js";
-import { ShopifyGraphQLClient } from "../src/client/graphql.js";
-import { registerTools } from "../src/tools/index.js";
+import { staticTokenProvider } from "#/client/auth";
+import { ShopifyGraphQLClient } from "#/client/graphql";
+import { registerTools } from "#/tools/index";
 
 /**
  * Read the tool list off a real MCP client, so these assertions see exactly what

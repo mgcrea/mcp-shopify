@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createClientCredentialsTokenProvider, requestAccessToken } from "../src/client/auth.js";
-import { ShopifyApiError } from "../src/client/errors.js";
+import { createClientCredentialsTokenProvider, requestAccessToken } from "#/client/auth";
+import { ShopifyApiError } from "#/client/errors";
 
 const jsonResponse = (body: unknown, init?: ResponseInit): Response =>
   new Response(JSON.stringify(body), {
