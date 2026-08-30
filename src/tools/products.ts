@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 
 import { toGid } from "#/client/gid";
@@ -18,7 +18,7 @@ export const registerProductTools = (server: McpServer, client: ShopifyGraphQLCl
       description:
         "List products in the store with cursor pagination. Use `query` for Shopify's search syntax " +
         '(e.g. "status:active vendor:Acme product_type:Shoes", "title:shirt", "created_at:>2024-01-01").',
-      inputSchema: {
+      inputSchema: z.object({
         query: z
           .string()
           .optional()
@@ -39,7 +39,7 @@ export const registerProductTools = (server: McpServer, client: ShopifyGraphQLCl
           .describe("Optional sort key for the result set."),
         first: firstArg,
         after: afterArg,
-      },
+      }),
       annotations: { readOnlyHint: true },
     },
     async ({ query, sortKey, first, after }) =>
@@ -53,7 +53,7 @@ export const registerProductTools = (server: McpServer, client: ShopifyGraphQLCl
       description:
         "Get a single product with full detail (options, category, price range, SEO). " +
         "Provide either `id` or `handle`.",
-      inputSchema: {
+      inputSchema: z.object({
         id: z
           .string()
           .optional()
@@ -64,7 +64,7 @@ export const registerProductTools = (server: McpServer, client: ShopifyGraphQLCl
           .string()
           .optional()
           .describe("Product handle (the URL slug). Used when `id` is omitted."),
-      },
+      }),
       annotations: { readOnlyHint: true },
     },
     async ({ id, handle }) =>

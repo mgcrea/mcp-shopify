@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 
 import { toGid } from "#/client/gid";
@@ -13,7 +13,7 @@ export const registerInventoryTools = (server: McpServer, client: ShopifyGraphQL
       title: "Shopify: List Locations",
       description:
         "List the store's locations (warehouses, retail stores) used for inventory and fulfillment.",
-      inputSchema: { first: firstArg, after: afterArg },
+      inputSchema: z.object({ first: firstArg, after: afterArg }),
       annotations: { readOnlyHint: true },
     },
     async ({ first, after }) => wrap(() => client.request(LOCATIONS_QUERY, { first, after })),
@@ -26,7 +26,7 @@ export const registerInventoryTools = (server: McpServer, client: ShopifyGraphQL
       description:
         "Get inventory levels for a product variant across all locations (available, on hand, " +
         "committed, incoming, reserved, damaged).",
-      inputSchema: {
+      inputSchema: z.object({
         variantId: z.string().describe("Variant ID — numeric or gid."),
         first: z
           .number()
@@ -35,7 +35,7 @@ export const registerInventoryTools = (server: McpServer, client: ShopifyGraphQL
           .max(250)
           .default(50)
           .describe("Maximum number of locations / inventory levels to return."),
-      },
+      }),
       annotations: { readOnlyHint: true },
     },
     async ({ variantId, first }) =>

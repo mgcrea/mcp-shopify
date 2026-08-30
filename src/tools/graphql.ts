@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 
 import type { ShopifyGraphQLClient } from "#/client/graphql";
@@ -36,13 +36,13 @@ export const registerGraphqlTool = (
         "Use this as an escape hatch when no curated tool fits — for example to explore orders, " +
         "customers, discounts, publications, or fields the other tools don't expose. Only `query` " +
         "operations are allowed; `mutation` and `subscription` are rejected.",
-      inputSchema: {
+      inputSchema: z.object({
         query: z.string().describe("A GraphQL query document. Must be a `query` operation."),
         variables: z
           .record(z.string(), z.unknown())
           .optional()
           .describe("Optional GraphQL variables object matching the query's declared variables."),
-      },
+      }),
       // Truthful: assertReadOnly rejects mutation/subscription before any network call.
       annotations: { readOnlyHint: true },
     },

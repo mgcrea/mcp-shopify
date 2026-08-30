@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 
 import { toGid } from "#/client/gid";
@@ -18,14 +18,14 @@ export const registerCollectionTools = (server: McpServer, client: ShopifyGraphQ
       description:
         "List collections (custom and smart) with cursor pagination. Use `query` for Shopify " +
         'search syntax, e.g. "title:Summer".',
-      inputSchema: {
+      inputSchema: z.object({
         query: z
           .string()
           .optional()
           .describe('Optional Shopify search query, e.g. "title:Summer".'),
         first: firstArg,
         after: afterArg,
-      },
+      }),
       annotations: { readOnlyHint: true },
     },
     async ({ query, first, after }) =>
@@ -39,7 +39,7 @@ export const registerCollectionTools = (server: McpServer, client: ShopifyGraphQ
       description:
         "Get a single collection with detail (rule set for smart collections, SEO). Provide " +
         "either `id` or `handle`. Set `includeProducts` to also list member products.",
-      inputSchema: {
+      inputSchema: z.object({
         id: z.string().optional().describe("Collection ID — numeric or gid."),
         handle: z
           .string()
@@ -56,7 +56,7 @@ export const registerCollectionTools = (server: McpServer, client: ShopifyGraphQ
           .max(250)
           .default(50)
           .describe("Maximum products to return when `includeProducts` is true."),
-      },
+      }),
       annotations: { readOnlyHint: true },
     },
     async ({ id, handle, includeProducts, productsFirst }) =>

@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 
 import { toGid } from "#/client/gid";
@@ -18,7 +18,7 @@ export const registerVariantTools = (server: McpServer, client: ShopifyGraphQLCl
       description:
         "List product variants. If `productId` is set, returns that product's variants; " +
         'otherwise performs a store-wide variant search using `query` (e.g. "sku:ABC-123").',
-      inputSchema: {
+      inputSchema: z.object({
         productId: z
           .string()
           .optional()
@@ -31,7 +31,7 @@ export const registerVariantTools = (server: McpServer, client: ShopifyGraphQLCl
           ),
         first: firstArg,
         after: afterArg,
-      },
+      }),
       annotations: { readOnlyHint: true },
     },
     async ({ productId, query, first, after }) =>
@@ -53,11 +53,11 @@ export const registerVariantTools = (server: McpServer, client: ShopifyGraphQLCl
       title: "Shopify: Get Product Variant",
       description:
         "Get a single product variant with full detail (price, SKU, selected options, inventory item).",
-      inputSchema: {
+      inputSchema: z.object({
         id: z
           .string()
           .describe("Variant ID — numeric or a gid (gid://shopify/ProductVariant/1234567890)."),
-      },
+      }),
       annotations: { readOnlyHint: true },
     },
     async ({ id }) =>
