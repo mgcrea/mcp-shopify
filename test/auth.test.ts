@@ -79,12 +79,12 @@ describe("requestAccessToken", () => {
   });
 });
 
-describe("createClientCredentialsTokenProvider", () => {
-  const buildFetch = (token = "shpat_one", expiresIn = 3600): ReturnType<typeof vi.fn> =>
-    vi.fn(async () =>
-      jsonResponse({ access_token: token, scope: "read_products", expires_in: expiresIn }),
-    );
+const buildFetch = (token = "shpat_one", expiresIn = 3600): ReturnType<typeof vi.fn> =>
+  vi.fn(async () =>
+    jsonResponse({ access_token: token, scope: "read_products", expires_in: expiresIn }),
+  );
 
+describe("createClientCredentialsTokenProvider", () => {
   it("caches the token across calls inside the skew window", async () => {
     const fetchImpl = buildFetch();
     let now = 1_000_000;
