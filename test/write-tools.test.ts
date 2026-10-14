@@ -116,3 +116,136 @@ describe("shopify_delete_metafields", () => {
     expect(result.isError).toBeFalsy();
   });
 });
+
+const okProduct = () =>
+  vi.fn(async () =>
+    graphqlResponse({
+      data: { productUpdate: { product: { id: "gid://shopify/Product/1" }, userErrors: [] } },
+    }),
+  );
+
+describe("shopify_update_product", () => {
+  it("normalizes the id and sends only the fields given", async () => {
+    const fetchImpl = okProduct();
+    const mcp = await connect(fetchImpl, curated);
+
+    const result = await mcp.callTool({
+      name: "shopify_update_product",
+      arguments: { id: "1", title: "New title", tags: ["a", "b"] },
+    });
+
+    const { body } = lastRequest(fetchImpl);
+    expect(body.query).toContain("productUpdate(product: $product)");
+    expect(body.variables).toEqual({
+      product: { id: "gid://shopify/Product/1", title: "New title", tags: ["a", "b"] },
+    });
+    expect(result.isError).toBeFalsy();
+  });
+
+  it("passes status and seo through", async () => {
+    const fetchImpl = okProduct();
+    const mcp = await connect(fetchImpl, curated);
+
+    await mcp.callTool({
+      name: "shopify_update_product",
+      arguments: { id: "gid://shopify/Product/1", status: "ARCHIVED", seo: { title: "T" } },
+    });
+
+    expect(lastRequest(fetchImpl).body.variables).toEqual({
+      product: { id: "gid://shopify/Product/1", status: "ARCHIVED", seo: { title: "T" } },
+    });
+  });
+
+  // Only an id would send a no-op that comes back looking like a success.
+  it("refuses an update with no fields, before the network", async () => {
+    const fetchImpl = okProduct();
+    const mcp = await connect(fetchImpl, curated);
+
+    const result = await mcp.callTool({ name: "shopify_update_product", arguments: { id: "1" } });
+
+    expect(result.isError).toBe(true);
+    expect(payload<{ error: string }>(result).error).toContain("Provide at least one field");
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("turns userErrors into a tool error", async () => {
+    const fetchImpl = vi.fn(async () =>
+      graphqlResponse({
+        data: {
+          productUpdate: {
+            product: null,
+            userErrors: [{ field: ["handle"], message: "Handle is taken" }],
+          },
+        },
+      }),
+    );
+    const mcp = await connect(fetchImpl, curated);
+
+    const result = await mcp.callTool({
+      name: "shopify_update_product",
+      arguments: { id: "1", handle: "taken" },
+    });
+
+    expect(result.isError).toBe(true);
+    expect(payload<{ error: string }>(result).error).toContain("Handle is taken");
+  });
+});
+
+const okVariants = () =>
+  vi.fn(async () =>
+    graphqlResponse({
+      data: { productVariantsBulkUpdate: { productVariants: [], userErrors: [] } },
+    }),
+  );
+
+describe("shopify_update_variants", () => {
+  it("maps sku into inventoryItem and normalizes ids", async () => {
+    const fetchImpl = okVariants();
+    const mcp = await connect(fetchImpl, curated);
+
+    await mcp.callTool({
+      name: "shopify_update_variants",
+      arguments: { productId: "1", variants: [{ id: "2", price: "12.50", sku: "SKU-2" }] },
+    });
+
+    const { body } = lastRequest(fetchImpl);
+    expect(body.query).toContain(
+      "productVariantsBulkUpdate(productId: $productId, variants: $variants)",
+    );
+    expect(body.variables).toEqual({
+      productId: "gid://shopify/Product/1",
+      variants: [
+        { id: "gid://shopify/ProductVariant/2", price: "12.50", inventoryItem: { sku: "SKU-2" } },
+      ],
+    });
+  });
+
+  it("sends compareAtPrice null to clear it", async () => {
+    const fetchImpl = okVariants();
+    const mcp = await connect(fetchImpl, curated);
+
+    await mcp.callTool({
+      name: "shopify_update_variants",
+      arguments: { productId: "1", variants: [{ id: "2", compareAtPrice: null }] },
+    });
+
+    expect(lastRequest(fetchImpl).body.variables!.variants).toEqual([
+      { id: "gid://shopify/ProductVariant/2", compareAtPrice: null },
+    ]);
+  });
+
+  it.each(["12,50", "-1", "abc"])("refuses the price %j", async (price) => {
+    const fetchImpl = okVariants();
+    const mcp = await connect(fetchImpl, curated);
+
+    const rejected = await isRejected(
+      mcp.callTool({
+        name: "shopify_update_variants",
+        arguments: { productId: "1", variants: [{ id: "2", price }] },
+      }),
+    );
+
+    expect(rejected).toBe(true);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+});

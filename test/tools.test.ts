@@ -20,11 +20,18 @@ const listTools = async (
 };
 
 // Extended as each curated write family lands.
-const CURATED_WRITE_TOOLS = ["shopify_set_metafields", "shopify_delete_metafields"];
+const CURATED_WRITE_TOOLS = [
+  "shopify_set_metafields",
+  "shopify_delete_metafields",
+  "shopify_update_product",
+  "shopify_update_variants",
+];
 
 const WRITE_ANNOTATIONS: Record<string, { destructiveHint: boolean; idempotentHint: boolean }> = {
   shopify_set_metafields: { destructiveHint: false, idempotentHint: true },
   shopify_delete_metafields: { destructiveHint: true, idempotentHint: true },
+  shopify_update_product: { destructiveHint: false, idempotentHint: true },
+  shopify_update_variants: { destructiveHint: false, idempotentHint: true },
 };
 
 describe("tool registration", () => {

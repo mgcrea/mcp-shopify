@@ -11,6 +11,7 @@ import { registerShopTools } from "#/tools/shop";
 import { registerStatusTool } from "#/tools/status";
 import { registerVariantTools } from "#/tools/variants";
 import { registerMetafieldWriteTools } from "#/tools/write-metafields";
+import { registerProductWriteTools } from "#/tools/write-products";
 
 /**
  * Register the Shopify tools.
@@ -41,4 +42,5 @@ export const registerTools = (
 
   if (config.writes === "off") return;
   registerMetafieldWriteTools(server, client);
+  registerProductWriteTools(server, client);
 };
