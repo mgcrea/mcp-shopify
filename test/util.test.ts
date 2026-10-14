@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { ShopifyApiError } from "#/client/errors";
 import { toGid, parseGid } from "#/client/gid";
-import { afterArg, fail, firstArg, ok, wrap } from "#/tools/util";
+import { afterArg, fail, firstArg, ok, toFailure, withDetails, wrap } from "#/tools/util";
 
 const payload = (result: { content: { text: string }[] }): unknown =>
   JSON.parse(result.content[0]!.text);
@@ -64,6 +64,38 @@ describe("wrap", () => {
 
     expect(result.isError).toBe(true);
     expect(payload(result)).toEqual({ error: "Unknown error", details: "just a string" });
+  });
+});
+
+describe("withDetails", () => {
+  it("keeps a ShopifyApiError's message, status and errors", () => {
+    const errors = [{ message: "Bad Gateway" }];
+    const err = withDetails(new ShopifyApiError("HTTP 502", { status: 502, errors }), { k: "v" });
+
+    expect(payload(toFailure(err))).toEqual({
+      error: "HTTP 502",
+      details: { status: 502, errors, k: "v" },
+    });
+  });
+
+  it("merges into an Error's object details", () => {
+    const original = Object.assign(new Error("rejected"), { details: { userErrors: [] } });
+
+    expect(payload(toFailure(withDetails(original, { k: "v" })))).toEqual({
+      error: "rejected",
+      details: { userErrors: [], k: "v" },
+    });
+  });
+
+  it("keeps non-object details under `cause`", () => {
+    expect(payload(toFailure(withDetails("just a string", { k: "v" })))).toEqual({
+      error: "Unknown error",
+      details: { cause: "just a string", k: "v" },
+    });
+    expect(payload(toFailure(withDetails(new Error("fetch failed"), { k: "v" })))).toEqual({
+      error: "fetch failed",
+      details: { k: "v" },
+    });
   });
 });
 

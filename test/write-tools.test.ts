@@ -435,3 +435,91 @@ describe("shopify_set_inventory", () => {
     expect(JSON.stringify(payload(result))).toContain("CHANGE_FROM_QUANTITY_STALE");
   });
 });
+
+const setArgs = {
+  reason: "correction",
+  quantities: [{ inventoryItemId: "10", locationId: "20", quantity: 7, changeFromQuantity: 5 }],
+};
+
+const badGateway = () =>
+  vi.fn(async () => new Response("Bad Gateway", { status: 502, statusText: "Bad Gateway" }));
+
+const networkDown = () =>
+  vi.fn(async () => {
+    throw new TypeError("fetch failed");
+  });
+
+const rejectedWith = (mutation: string, code: string) =>
+  vi.fn(async () =>
+    graphqlResponse({
+      data: {
+        [mutation]: {
+          inventoryAdjustmentGroup: null,
+          userErrors: [{ field: ["input"], message: "Rejected", code }],
+        },
+      },
+    }),
+  );
+
+type KeyedFailure = {
+  error: string;
+  details: { idempotencyKey?: string; status?: number; errors?: unknown };
+};
+
+// A failed write may still have been applied (a 5xx, a dropped connection), so
+// the agent needs the key it used to retry safely — not a freshly minted one.
+describe("inventory write failures carry the idempotency key", () => {
+  it.each([
+    ["shopify_adjust_inventory", adjustArgs],
+    ["shopify_set_inventory", setArgs],
+  ])("%s: on an HTTP 502", async (name, args) => {
+    const fetchImpl = badGateway();
+    const mcp = await connect(fetchImpl, curated);
+
+    const result = await mcp.callTool({ name, arguments: args });
+
+    expect(result.isError).toBe(true);
+    const failure = payload<KeyedFailure>(result);
+    expect(failure.error).toContain("HTTP 502");
+    expect(failure.details.status).toBe(502);
+    expect(failure.details.idempotencyKey).toMatch(UUID);
+    expect(failure.details.idempotencyKey).toBe(
+      lastRequest(fetchImpl).body.variables!.idempotencyKey,
+    );
+  });
+
+  it.each([
+    ["shopify_adjust_inventory", adjustArgs],
+    ["shopify_set_inventory", setArgs],
+  ])("%s: on a network error, keeping a caller-supplied key", async (name, args) => {
+    const fetchImpl = networkDown();
+    const mcp = await connect(fetchImpl, curated);
+
+    const result = await mcp.callTool({ name, arguments: { ...args, idempotencyKey: "mine-1" } });
+
+    expect(result.isError).toBe(true);
+    const failure = payload<KeyedFailure>(result);
+    expect(failure.error).toContain("fetch failed");
+    expect(failure.details.idempotencyKey).toBe("mine-1");
+  });
+
+  it.each([
+    ["shopify_adjust_inventory", adjustArgs, "inventoryAdjustQuantities"],
+    ["shopify_set_inventory", setArgs, "inventorySetQuantities"],
+  ])("%s: on userErrors, with the error code intact", async (name, args, mutation) => {
+    const fetchImpl = rejectedWith(mutation, "CHANGE_FROM_QUANTITY_STALE");
+    const mcp = await connect(fetchImpl, curated);
+
+    const result = await mcp.callTool({ name, arguments: args });
+
+    expect(result.isError).toBe(true);
+    const failure = payload<KeyedFailure>(result);
+    expect(failure.error).toContain("Rejected");
+    expect(failure.details.errors).toEqual([
+      { field: ["input"], message: "Rejected", code: "CHANGE_FROM_QUANTITY_STALE" },
+    ]);
+    expect(failure.details.idempotencyKey).toBe(
+      lastRequest(fetchImpl).body.variables!.idempotencyKey,
+    );
+  });
+});

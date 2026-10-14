@@ -30,17 +30,37 @@ export const fail = (message: string, extra?: unknown): ToolResult => ({
   isError: true,
 });
 
-/** Render a thrown value as a tool error, preserving Shopify's error detail. */
-export const toFailure = (err: unknown): ToolResult => {
+/** The message and structured detail a thrown value renders as. */
+const describeFailure = (err: unknown): { message: string; details?: unknown } => {
   if (err instanceof ShopifyApiError) {
-    return fail(err.message, { status: err.status, errors: err.errors });
+    return { message: err.message, details: { status: err.status, errors: err.errors } };
   }
   if (err instanceof Error) {
     // Let an error carry structured detail through rather than flattening to a message.
-    const details = (err as Error & { details?: unknown }).details;
-    return fail(err.message, details);
+    return { message: err.message, details: (err as Error & { details?: unknown }).details };
   }
-  return fail("Unknown error", err);
+  return { message: "Unknown error", details: err };
+};
+
+/** Render a thrown value as a tool error, preserving Shopify's error detail. */
+export const toFailure = (err: unknown): ToolResult => {
+  const { message, details } = describeFailure(err);
+  return fail(message, details);
+};
+
+/**
+ * Re-throwable copy of `err` that renders like it, with `extra` merged into its
+ * details — e.g. the idempotency key a failed write used, so it can be retried.
+ */
+export const withDetails = (err: unknown, extra: Record<string, unknown>): Error => {
+  const { message, details } = describeFailure(err);
+  const base =
+    details === undefined
+      ? {}
+      : typeof details === "object" && details !== null && !Array.isArray(details)
+        ? details
+        : { cause: details };
+  return Object.assign(new Error(message), { details: { ...base, ...extra } });
 };
 
 /** Run a tool body, JSON-formatting the result and turning errors into a tool error. */

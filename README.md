@@ -283,7 +283,11 @@ picks it up from `.env`.)
 
 Every write reports Shopify's `userErrors` as a tool error, so a rejected write never comes
 back looking like a success. The inventory tools send an `@idempotent` key, generated per
-call and returned to you; the server's own retries reuse it, so a change is applied once.
+call unless you pass one, and returned to you on success and failure alike; the server's own
+retries reuse it, so a change is applied once. A 5xx or a dropped connection may still have
+applied the change, so retry it with the key from the error. A client-side timeout leaves you
+no reply and no key at all: to be able to retry safely after one, pass your own unique
+`idempotencyKey` on the first call and reuse it only to retry that same call.
 They target API `2026-04` and later — an older `SHOPIFY_API_VERSION` may reject
 `changeFromQuantity` or `@idempotent`.
 

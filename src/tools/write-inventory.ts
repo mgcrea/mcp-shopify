@@ -7,7 +7,7 @@ import { toGid } from "#/client/gid";
 import type { ShopifyGraphQLClient } from "#/client/graphql";
 import { INVENTORY_ADJUST_MUTATION, INVENTORY_SET_MUTATION } from "#/client/mutations/inventory";
 import { assertNoUserErrors, type MutationPayload } from "#/client/user-errors";
-import { wrap } from "#/tools/util";
+import { withDetails, wrap } from "#/tools/util";
 
 const quantityName = z
   .enum(["available", "on_hand"])
@@ -33,8 +33,9 @@ const idempotencyKey = z
   .max(255)
   .optional()
   .describe(
-    "Optional. Omit it and one is generated and returned. Pass a previous call's key only to " +
-      "retry that same call after a timeout — Shopify then applies it at most once.",
+    "Optional. Omit it and one is generated and returned, on failure too. To be able to retry " +
+      "safely after a timeout or a 5xx, pass your own unique key on the first call and reuse it " +
+      "only to retry that same call — Shopify then applies it at most once.",
   );
 
 const itemId = z
@@ -49,6 +50,17 @@ const locationId = z
 // change once. Never reuse one across separate calls: Shopify would drop the
 // second as a duplicate.
 const keyFor = (given: string | undefined): string => given ?? randomUUID();
+
+// A failed write may still have been applied (a 5xx, a dropped connection), and
+// retrying it under a new key could apply it twice — so every failure carries
+// the key it was sent with, alongside Shopify's own error detail.
+const keepingKey = async <T>(key: string, run: () => Promise<T>): Promise<T> => {
+  try {
+    return await run();
+  } catch (err) {
+    throw withDetails(err, { idempotencyKey: key });
+  }
+};
 
 export const registerInventoryWriteTools = (
   server: McpServer,
@@ -106,14 +118,16 @@ export const registerInventoryWriteTools = (
             ledgerDocumentUri: change.ledgerDocumentUri,
           })),
         };
-        const data = await client.request<{ inventoryAdjustQuantities?: MutationPayload }>(
-          INVENTORY_ADJUST_MUTATION,
-          { input, idempotencyKey: key },
-        );
-        return {
-          ...assertNoUserErrors(data.inventoryAdjustQuantities, "inventoryAdjustQuantities"),
-          idempotencyKey: key,
-        };
+        return keepingKey(key, async () => {
+          const data = await client.request<{ inventoryAdjustQuantities?: MutationPayload }>(
+            INVENTORY_ADJUST_MUTATION,
+            { input, idempotencyKey: key },
+          );
+          return {
+            ...assertNoUserErrors(data.inventoryAdjustQuantities, "inventoryAdjustQuantities"),
+            idempotencyKey: key,
+          };
+        });
       }),
   );
 
@@ -164,14 +178,16 @@ export const registerInventoryWriteTools = (
             changeFromQuantity: q.changeFromQuantity,
           })),
         };
-        const data = await client.request<{ inventorySetQuantities?: MutationPayload }>(
-          INVENTORY_SET_MUTATION,
-          { input, idempotencyKey: key },
-        );
-        return {
-          ...assertNoUserErrors(data.inventorySetQuantities, "inventorySetQuantities"),
-          idempotencyKey: key,
-        };
+        return keepingKey(key, async () => {
+          const data = await client.request<{ inventorySetQuantities?: MutationPayload }>(
+            INVENTORY_SET_MUTATION,
+            { input, idempotencyKey: key },
+          );
+          return {
+            ...assertNoUserErrors(data.inventorySetQuantities, "inventorySetQuantities"),
+            idempotencyKey: key,
+          };
+        });
       }),
   );
 };
