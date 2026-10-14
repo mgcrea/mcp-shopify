@@ -45,3 +45,13 @@ export const SHOP_QUERY = `
     }
   }
 `;
+
+export const ACCESS_SCOPES_QUERY = `
+  query AccessScopes {
+    currentAppInstallation {
+      accessScopes {
+        handle
+      }
+    }
+  }
+`;

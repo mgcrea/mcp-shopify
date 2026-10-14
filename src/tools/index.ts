@@ -31,7 +31,7 @@ export const registerTools = (
   config: Config,
 ): void => {
   const { apiVersion } = config;
-  registerStatusTool(server, config);
+  registerStatusTool(server, config, client);
   if (!isConfigured(config)) return;
 
   registerProductTools(server, client);
