@@ -96,10 +96,12 @@ Two independent limits:
 
 1. **Read-only by default.** With `SHOPIFY_WRITES` unset (or `off`), no write tool is
    registered at all — a client can't see one, so it can't call one. The `shopify_graphql`
-   escape hatch parses your document and rejects `mutation` and `subscription` operations
+   escape hatch scans your document and rejects `mutation` and `subscription` operations
    _before_ any network call (`assertReadOnly` in [src/tools/graphql.ts](./src/tools/graphql.ts)),
    at every level; comments and string literals are stripped first so the keyword can't be
-   smuggled past it. Opting in is one env var with two steps up:
+   smuggled past it. The scan is not a GraphQL parser, so the test suite checks it against
+   graphql-js (a dev-only dependency) on a corpus of tricky and generated documents. Opting
+   in is one env var with two steps up:
    - `curated` adds six reviewed write tools that touch only metafields, product and variant
      content, and inventory. None of them deletes a product.
    - `all` adds `shopify_graphql_mutation`, which runs any mutation your scopes allow —

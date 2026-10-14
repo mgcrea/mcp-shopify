@@ -7,10 +7,12 @@ import { wrap } from "#/tools/util";
 /**
  * Strip comments and string literals so a keyword inside them can't trip (or dodge) a check.
  * One left-to-right pass, so whichever construct starts first wins: a `#` inside a string is
- * not a comment, and a quote inside a comment does not open a string.
+ * not a comment, and a quote inside a comment does not open a string. Inside a block string
+ * `\"""` is an escaped triple quote, not the terminator, exactly as the GraphQL lexer reads it.
+ * test/read-only-guard.test.ts checks this scan against graphql-js.
  */
 export const stripNoise = (document: string): string =>
-  document.replace(/"""[\s\S]*?"""|"(?:\\.|[^"\\])*"|#[^\n\r]*/g, (match) =>
+  document.replace(/"""(?:\\"""|[\s\S])*?"""|"(?:\\.|[^"\\])*"|#[^\n\r]*/g, (match) =>
     match.startsWith("#") ? " " : '""',
   );
 
