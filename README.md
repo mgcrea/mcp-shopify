@@ -14,11 +14,15 @@ A [Model Context Protocol](https://modelcontextprotocol.io) server for the **Sho
 GraphQL API**. It lets an agent explore and understand how a store is built — products,
 variants, metafields, metafield definitions, collections, inventory, and shop settings.
 
-The server is **read-only**: it exposes only query tools, so it can never mutate store data.
+The server is **read-only by default**. Write tools exist, but they are only registered when
+you opt in with `SHOPIFY_WRITES` — see [Writes](#writes).
 
 ## Features
 
-- Read-only access to the Shopify **Admin GraphQL API** (default version `2026-04`).
+- Read-only access to the Shopify **Admin GraphQL API** (default version `2026-04`) unless you
+  opt in to writes.
+- Opt-in write tools for metafields, product and variant content, and inventory, plus a raw
+  mutation tool at the highest level — off unless `SHOPIFY_WRITES` says otherwise.
 - Curated tools for products, variants, metafields, metafield definitions, collections,
   inventory & locations, and shop settings.
 - A `shopify_graphql` escape hatch for arbitrary read-only queries — `mutation` and
@@ -90,19 +94,24 @@ token in a config file is a worse artifact to leak than a secret that mints 24h 
 
 Two independent limits:
 
-1. **Read-only by construction.** This server implements no mutating tools at all —
-   there is no write path to disable, because none was written. The `shopify_graphql`
-   escape hatch parses your document and rejects `mutation` and `subscription`
-   operations _before_ any network call (`assertReadOnly` in
-   [src/tools/graphql.ts](./src/tools/graphql.ts)); comments and string literals are
-   stripped first so the keyword can't be smuggled past it.
+1. **Read-only by default.** With `SHOPIFY_WRITES` unset (or `off`), no write tool is
+   registered at all — a client can't see one, so it can't call one. The `shopify_graphql`
+   escape hatch parses your document and rejects `mutation` and `subscription` operations
+   _before_ any network call (`assertReadOnly` in [src/tools/graphql.ts](./src/tools/graphql.ts)),
+   at every level; comments and string literals are stripped first so the keyword can't be
+   smuggled past it. Opting in is one env var with two steps up:
+   - `curated` adds six reviewed write tools that touch only metafields, product and variant
+     content, and inventory. None of them deletes a product.
+   - `all` adds `shopify_graphql_mutation`, which runs any mutation your scopes allow —
+     including deleting products or refunding orders.
 2. **Your app's access scopes are the real ceiling**, and this server cannot raise them.
    Scopes live in the Shopify Dev Dashboard, under your control, not in this codebase.
 
 Those are different kinds of guarantee and worth keeping apart: the first is a property
 of this code and only holds as long as the code is what you think it is; the second is
-enforced by Shopify regardless of what this server does. **Grant only `read_*` scopes**
-and the second one backstops the first. See [Configure](#configure) for the minimum set.
+enforced by Shopify regardless of what this server does. **If you don't need writes, grant
+only `read_*` scopes** and the second one backstops the first. If you do, grant only the
+`write_*` scopes the level needs (see [Writes](#writes)).
 
 ## Configure
 
@@ -113,7 +122,8 @@ they expose a Client ID + Client Secret that the server exchanges at runtime.
 
 1. Go to the [Shopify Dev Dashboard](https://dev.shopify.com) → **Apps → Create app**.
 2. Configure **Admin API access scopes** on the app: `read_products` (required), plus
-   `read_inventory` and `read_locations` for the inventory tools.
+   `read_inventory` and `read_locations` for the inventory tools. Add `write_products` and/or
+   `write_inventory` only if you enable writes.
 3. **Install the app on your store** (the client credentials grant only works once the
    app is installed on the target shop).
 4. Copy the **Client ID** and **Client secret** (the secret starts with `shpss_`) from
@@ -126,14 +136,15 @@ cp .env.example .env
 # Fill in SHOPIFY_STORE_DOMAIN, SHOPIFY_CLIENT_ID, SHOPIFY_CLIENT_SECRET (shpss_…)
 ```
 
-| Variable                | Required | Description                                                                         |
-| ----------------------- | -------- | ----------------------------------------------------------------------------------- |
-| `SHOPIFY_STORE_DOMAIN`  | yes      | The `*.myshopify.com` domain. A bare handle (`my-store`) is expanded automatically. |
-| `SHOPIFY_CLIENT_ID`     | yes      | Dev Dashboard app Client ID.                                                        |
-| `SHOPIFY_CLIENT_SECRET` | yes      | Dev Dashboard app Client secret (`shpss_...`).                                      |
-| `SHOPIFY_API_VERSION`   | no       | Admin GraphQL API version. Defaults to `2026-04`.                                   |
-| `SHOPIFY_MAX_RETRIES`   | no       | Retry budget for rate-limit / throttle / 401 responses. Defaults to `3`.            |
-| `SHOPIFY_DEBUG`         | no       | Set to `1` to log debug output to stderr.                                           |
+| Variable                | Required | Description                                                                                    |
+| ----------------------- | -------- | ---------------------------------------------------------------------------------------------- |
+| `SHOPIFY_STORE_DOMAIN`  | yes      | The `*.myshopify.com` domain. A bare handle (`my-store`) is expanded automatically.            |
+| `SHOPIFY_CLIENT_ID`     | yes      | Dev Dashboard app Client ID.                                                                   |
+| `SHOPIFY_CLIENT_SECRET` | yes      | Dev Dashboard app Client secret (`shpss_...`).                                                 |
+| `SHOPIFY_API_VERSION`   | no       | Admin GraphQL API version. Defaults to `2026-04`.                                              |
+| `SHOPIFY_MAX_RETRIES`   | no       | Retry budget for rate-limit / throttle / 401 responses. Defaults to `3`.                       |
+| `SHOPIFY_WRITES`        | no       | `off` (default), `curated` or `all`. Anything else is treated as `off`. See [Writes](#writes). |
+| `SHOPIFY_DEBUG`         | no       | Set to `1` to log debug output to stderr.                                                      |
 
 The server fetches an Admin API access token on first use and refreshes it
 automatically (≈24h tokens, refreshed 2min before expiry and on any 401).
@@ -239,6 +250,39 @@ npx @modelcontextprotocol/inspector npx -y @mgcrea/mcp-shopify
 
 All list tools use cursor pagination: pass `pageInfo.endCursor` from one call as the `after`
 argument of the next.
+
+## Writes
+
+Off unless you set `SHOPIFY_WRITES`:
+
+| Level     | Adds                                   | Scopes the app needs                |
+| --------- | -------------------------------------- | ----------------------------------- |
+| `off`     | nothing — the read-only server above   | `read_*` only                       |
+| `curated` | the six write tools below              | `write_products`, `write_inventory` |
+| `all`     | those, plus `shopify_graphql_mutation` | whatever your mutations touch       |
+
+```json
+"env": { "SHOPIFY_WRITES": "curated" }
+```
+
+| Tool                        | Level   | Purpose                                                                                    |
+| --------------------------- | ------- | ------------------------------------------------------------------------------------------ |
+| `shopify_set_metafields`    | curated | Create or update up to 25 metafields on any owner (gid required).                          |
+| `shopify_delete_metafields` | curated | Delete up to 25 metafields.                                                                |
+| `shopify_update_product`    | curated | Update title, description, handle, vendor, type, tags (replaces the list), status, SEO.    |
+| `shopify_update_variants`   | curated | Update price, compare-at price, barcode, SKU, taxable on up to 100 variants of a product.  |
+| `shopify_adjust_inventory`  | curated | Change quantities by a delta at one or more locations.                                     |
+| `shopify_set_inventory`     | curated | Set absolute quantities; requires the quantity you last read, so a sale isn't overwritten. |
+| `shopify_graphql_mutation`  | all     | Run any mutation. Fails if any field returns `userErrors`.                                 |
+
+Every write reports Shopify's `userErrors` as a tool error, so a rejected write never comes
+back looking like a success. The inventory tools send an `@idempotent` key, generated per
+call and returned to you; the server's own retries reuse it, so a change is applied once.
+They target API `2026-04` and later — an older `SHOPIFY_API_VERSION` may reject
+`changeFromQuantity` or `@idempotent`.
+
+`shopify_auth_status` reports the active level, the scopes the app actually holds, and a
+warning for each write scope the level needs but the app lacks.
 
 ## Development
 

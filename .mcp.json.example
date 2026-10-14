@@ -9,6 +9,7 @@
         "SHOPIFY_CLIENT_SECRET": "shpss_",
         "SHOPIFY_API_VERSION": "2026-04",
         "SHOPIFY_MAX_RETRIES": "3",
+        "SHOPIFY_WRITES": "off",
         "SHOPIFY_DEBUG": ""
       }
     }
