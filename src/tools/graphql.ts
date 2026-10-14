@@ -4,17 +4,20 @@ import { z } from "zod";
 import type { ShopifyGraphQLClient } from "#/client/graphql";
 import { wrap } from "#/tools/util";
 
+/** Strip comments and string literals so a keyword inside them can't trip (or dodge) a check. */
+export const stripNoise = (document: string): string =>
+  document
+    .replace(/#[^\n\r]*/g, " ")
+    .replace(/"""[\s\S]*?"""/g, '""')
+    .replace(/"(?:\\.|[^"\\])*"/g, '""');
+
 /**
  * Reject any GraphQL document that contains a `mutation` or `subscription`
  * operation. Comments and string literals are stripped first so the keyword
  * can't be smuggled in (or trigger a false positive) inside a string.
  */
 export const assertReadOnly = (document: string): void => {
-  const stripped = document
-    .replace(/#[^\n\r]*/g, " ")
-    .replace(/"""[\s\S]*?"""/g, '""')
-    .replace(/"(?:\\.|[^"\\])*"/g, '""');
-  if (/(?:^|[\s{}])(?:mutation|subscription)\b/i.test(stripped)) {
+  if (/(?:^|[\s{}])(?:mutation|subscription)\b/i.test(stripNoise(document))) {
     throw new Error(
       "shopify_graphql is read-only — `mutation` and `subscription` operations are rejected. " +
         "Use a `query` operation instead.",

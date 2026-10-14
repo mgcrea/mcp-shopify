@@ -97,6 +97,23 @@ describe("write levels", () => {
     expect(names).not.toContain("shopify_graphql_mutation");
   });
 
+  it("adds shopify_graphql_mutation only at all", async () => {
+    const tools = await listTools({ writes: "all" });
+    const names = tools.map((tool) => tool.name);
+    expect(names).toEqual(
+      expect.arrayContaining([...CURATED_WRITE_TOOLS, "shopify_graphql_mutation"]),
+    );
+    expect(names).toHaveLength(14 + CURATED_WRITE_TOOLS.length + 1);
+    expect(tools.find((t) => t.name === "shopify_graphql_mutation")?.annotations).toMatchObject({
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+    });
+    // The read escape hatch keeps its read-only promise at every level.
+    expect(tools.find((t) => t.name === "shopify_graphql")?.annotations?.readOnlyHint).toBe(true);
+  });
+
   it("annotates every write tool explicitly", async () => {
     const tools = await listTools({ writes: "curated" });
     for (const name of CURATED_WRITE_TOOLS) {

@@ -4,6 +4,7 @@ import type { ShopifyGraphQLClient } from "#/client/graphql";
 import { isConfigured, type Config } from "#/config";
 import { registerCollectionTools } from "#/tools/collections";
 import { registerGraphqlTool } from "#/tools/graphql";
+import { registerGraphqlMutationTool } from "#/tools/graphql-mutation";
 import { registerInventoryTools } from "#/tools/inventory";
 import { registerMetafieldTools } from "#/tools/metafields";
 import { registerProductTools } from "#/tools/products";
@@ -45,4 +46,6 @@ export const registerTools = (
   registerMetafieldWriteTools(server, client);
   registerProductWriteTools(server, client);
   registerInventoryWriteTools(server, client);
+  // Raw mutations reach anything the scopes allow, so they need the higher level.
+  if (config.writes === "all") registerGraphqlMutationTool(server, client, apiVersion);
 };
