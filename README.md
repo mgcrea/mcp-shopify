@@ -265,6 +265,10 @@ Off unless you set `SHOPIFY_WRITES`:
 "env": { "SHOPIFY_WRITES": "curated" }
 ```
 
+With Docker (Option B), also add `"-e", "SHOPIFY_WRITES"` to `args`: `docker run` only forwards
+the variables named with `-e`, so without it the server silently stays at `off`. (`--env-file .env`
+picks it up from `.env`.)
+
 | Tool                        | Level   | Purpose                                                                                    |
 | --------------------------- | ------- | ------------------------------------------------------------------------------------------ |
 | `shopify_set_metafields`    | curated | Create or update up to 25 metafields on any owner (gid required).                          |
