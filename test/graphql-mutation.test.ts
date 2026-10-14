@@ -91,4 +91,9 @@ describe("assertNoSubscription", () => {
   it("rejects a subscription operation", () => {
     expect(() => assertNoSubscription("subscription S { x }")).toThrow(/subscription/);
   });
+  it("rejects a subscription that follows a # inside a string", () => {
+    expect(() =>
+      assertNoSubscription('fragment F on Shop { metafield(key: "#") { id } } subscription { x }'),
+    ).toThrow(/subscription/);
+  });
 });

@@ -152,4 +152,20 @@ describe("assertReadOnly", () => {
       assertReadOnly('query { products(query: "mutation") { nodes { id } } }'),
     ).not.toThrow();
   });
+
+  it("rejects a mutation that follows a # inside a string on the same line", () => {
+    const doc =
+      'fragment F on Product { metafield(key: "#") { id } } mutation { productUpdate(product: { id: "gid://shopify/Product/1" }) { product { ...F } } }';
+    expect(() => assertReadOnly(doc)).toThrow(/read-only/);
+  });
+
+  it("allows a # inside a string followed by a query", () => {
+    expect(() =>
+      assertReadOnly('query { products(query: "tag:#sale") { nodes { id } } }'),
+    ).not.toThrow();
+  });
+
+  it("does not let a quote inside a comment open a string", () => {
+    expect(() => assertReadOnly('# say "hi\nmutation { a }')).toThrow(/read-only/);
+  });
 });

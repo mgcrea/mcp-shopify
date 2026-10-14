@@ -4,12 +4,15 @@ import { z } from "zod";
 import type { ShopifyGraphQLClient } from "#/client/graphql";
 import { wrap } from "#/tools/util";
 
-/** Strip comments and string literals so a keyword inside them can't trip (or dodge) a check. */
+/**
+ * Strip comments and string literals so a keyword inside them can't trip (or dodge) a check.
+ * One left-to-right pass, so whichever construct starts first wins: a `#` inside a string is
+ * not a comment, and a quote inside a comment does not open a string.
+ */
 export const stripNoise = (document: string): string =>
-  document
-    .replace(/#[^\n\r]*/g, " ")
-    .replace(/"""[\s\S]*?"""/g, '""')
-    .replace(/"(?:\\.|[^"\\])*"/g, '""');
+  document.replace(/"""[\s\S]*?"""|"(?:\\.|[^"\\])*"|#[^\n\r]*/g, (match) =>
+    match.startsWith("#") ? " " : '""',
+  );
 
 /**
  * Reject any GraphQL document that contains a `mutation` or `subscription`
