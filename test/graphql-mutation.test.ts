@@ -51,6 +51,42 @@ describe("shopify_graphql_mutation", () => {
     expect(failure.details.data).toEqual(data);
   });
 
+  // Without the applied fields, an agent retrying the whole document re-applies them.
+  it("keeps the fields that ran when the response also has top-level errors", async () => {
+    const data = { a: { product: { id: "gid://shopify/Product/1" }, userErrors: [] }, b: null };
+    const errors = [{ message: "Internal error", path: ["b"] }];
+    const fetchImpl = vi.fn(async () => graphqlResponse({ data, errors }));
+    const mcp = await connect(fetchImpl, all);
+
+    const result = await mcp.callTool({
+      name: "shopify_graphql_mutation",
+      arguments: { query: "mutation { a { product { id } userErrors { message } } b { id } }" },
+    });
+
+    expect(result.isError).toBe(true);
+    const failure = payload<{ error: string; details: { errors: unknown; data: unknown } }>(result);
+    expect(failure.error).toContain("Internal error");
+    expect(failure.details.errors).toEqual(errors);
+    expect(failure.details.data).toEqual(data);
+  });
+
+  it("adds no data to a GraphQL error that has none", async () => {
+    const fetchImpl = vi.fn(async () =>
+      graphqlResponse({ errors: [{ message: 'Parse error on "}"' }] }),
+    );
+    const mcp = await connect(fetchImpl, all);
+
+    const result = await mcp.callTool({
+      name: "shopify_graphql_mutation",
+      arguments: { query: "mutation { }" },
+    });
+
+    expect(result.isError).toBe(true);
+    expect(payload<{ details: Record<string, unknown> }>(result).details).not.toHaveProperty(
+      "data",
+    );
+  });
+
   it("rejects a subscription before the network", async () => {
     const fetchImpl = vi.fn(async () => graphqlResponse({ data: {} }));
     const mcp = await connect(fetchImpl, all);

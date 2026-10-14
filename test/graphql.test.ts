@@ -55,6 +55,32 @@ describe("ShopifyGraphQLClient", () => {
     await expect(client.request("query { bogus }")).rejects.toBeInstanceOf(ShopifyApiError);
   });
 
+  // A mutation document can half-succeed: the fields that ran must stay visible.
+  it("carries partial data on the error when GraphQL errors come with data", async () => {
+    const data = { a: { product: { id: "gid://shopify/Product/1" } }, b: null };
+    const errors = [{ message: "Internal error", path: ["b"] }];
+    const fetchImpl = vi.fn(async () => jsonResponse({ data, errors })) as unknown as typeof fetch;
+    const client = buildClient(fetchImpl);
+
+    const err = await client.request("mutation { a { id } b { id } }").catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(ShopifyApiError);
+    expect((err as ShopifyApiError).errors).toEqual(errors);
+    expect((err as ShopifyApiError).data).toEqual(data);
+  });
+
+  it("carries no data on the error when the response has none", async () => {
+    const fetchImpl = vi.fn(async () =>
+      jsonResponse({ data: null, errors: [{ message: "Parse error" }] }),
+    ) as unknown as typeof fetch;
+    const client = buildClient(fetchImpl);
+
+    const err = await client.request("query {").catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(ShopifyApiError);
+    expect((err as ShopifyApiError).data).toBeUndefined();
+  });
+
   it("retries on HTTP 401 with an invalidated token, then succeeds", async () => {
     const invalidate = vi.fn();
     const getToken = vi

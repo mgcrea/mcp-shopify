@@ -155,9 +155,11 @@ export class ShopifyGraphQLClient {
 
       if (json.errors && json.errors.length > 0) {
         const message = json.errors.map((e) => e.message).join("; ");
+        // A mutation document can half-succeed; keep what did run so a retry doesn't redo it.
         throw new ShopifyApiError(`Shopify GraphQL error: ${message}`, {
           status: res.status,
           errors: json.errors,
+          ...(json.data !== undefined && json.data !== null ? { data: json.data } : {}),
         });
       }
 

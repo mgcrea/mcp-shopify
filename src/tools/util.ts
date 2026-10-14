@@ -33,7 +33,11 @@ export const fail = (message: string, extra?: unknown): ToolResult => ({
 /** The message and structured detail a thrown value renders as. */
 const describeFailure = (err: unknown): { message: string; details?: unknown } => {
   if (err instanceof ShopifyApiError) {
-    return { message: err.message, details: { status: err.status, errors: err.errors } };
+    const { status, errors, data } = err;
+    return {
+      message: err.message,
+      details: { status, errors, ...(data !== undefined && { data }) },
+    };
   }
   if (err instanceof Error) {
     // Let an error carry structured detail through rather than flattening to a message.
