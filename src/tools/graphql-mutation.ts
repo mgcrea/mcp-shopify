@@ -7,7 +7,7 @@ import { stripNoise } from "#/tools/graphql";
 import { wrap } from "#/tools/util";
 
 export const assertNoSubscription = (document: string): void => {
-  if (/(?:^|[\s{}])subscription\b/i.test(stripNoise(document))) {
+  if (/(?<![A-Za-z0-9_])subscription\b/i.test(stripNoise(document))) {
     throw new Error(
       "shopify_graphql_mutation does not run `subscription` operations — the Admin API doesn't " +
         "serve them over this endpoint.",

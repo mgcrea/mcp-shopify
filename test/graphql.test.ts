@@ -168,4 +168,12 @@ describe("assertReadOnly", () => {
   it("does not let a quote inside a comment open a string", () => {
     expect(() => assertReadOnly('# say "hi\nmutation { a }')).toThrow(/read-only/);
   });
+
+  it("rejects a mutation that follows a comma", () => {
+    expect(() =>
+      assertReadOnly(
+        'fragment F on Product { id },mutation { productUpdate(product: { id: "x" }) { product { ...F } } }',
+      ),
+    ).toThrow(/read-only/);
+  });
 });

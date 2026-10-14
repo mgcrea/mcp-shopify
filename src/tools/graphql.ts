@@ -20,7 +20,7 @@ export const stripNoise = (document: string): string =>
  * can't be smuggled in (or trigger a false positive) inside a string.
  */
 export const assertReadOnly = (document: string): void => {
-  if (/(?:^|[\s{}])(?:mutation|subscription)\b/i.test(stripNoise(document))) {
+  if (/(?<![A-Za-z0-9_])(?:mutation|subscription)\b/i.test(stripNoise(document))) {
     throw new Error(
       "shopify_graphql is read-only — `mutation` and `subscription` operations are rejected. " +
         "Use a `query` operation instead.",

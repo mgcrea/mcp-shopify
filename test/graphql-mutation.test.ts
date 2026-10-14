@@ -96,4 +96,9 @@ describe("assertNoSubscription", () => {
       assertNoSubscription('fragment F on Shop { metafield(key: "#") { id } } subscription { x }'),
     ).toThrow(/subscription/);
   });
+  it("rejects a subscription that follows a comma", () => {
+    expect(() => assertNoSubscription("fragment F on Shop { id },subscription { x }")).toThrow(
+      /subscription/,
+    );
+  });
 });
