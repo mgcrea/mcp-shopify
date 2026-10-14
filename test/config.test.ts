@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { loadConfig, normalizeStoreDomain, isConfigured, setupInstructions } from "#/config";
+import {
+  invalidWritesMessage,
+  isConfigured,
+  loadConfig,
+  normalizeStoreDomain,
+  setupInstructions,
+} from "#/config";
 
 describe("normalizeStoreDomain", () => {
   it("strips protocol and path", () => {
@@ -66,5 +72,44 @@ describe("loadConfig", () => {
     } as NodeJS.ProcessEnv);
     expect(cfg.apiVersion).toBe("2025-10");
     expect(cfg.maxRetries).toBe(5);
+  });
+});
+
+describe("SHOPIFY_WRITES", () => {
+  const base = {
+    SHOPIFY_STORE_DOMAIN: "my-store",
+    SHOPIFY_CLIENT_ID: "id",
+    SHOPIFY_CLIENT_SECRET: "shpss_x",
+  };
+
+  it("defaults to off when unset or empty", () => {
+    expect(loadConfig({ ...base } as NodeJS.ProcessEnv).writes).toBe("off");
+    expect(loadConfig({ ...base, SHOPIFY_WRITES: "  " } as NodeJS.ProcessEnv).writes).toBe("off");
+    expect(loadConfig({ ...base } as NodeJS.ProcessEnv).writesInvalid).toBeUndefined();
+  });
+
+  it("accepts the three levels, ignoring case and surrounding whitespace", () => {
+    expect(loadConfig({ ...base, SHOPIFY_WRITES: "off" } as NodeJS.ProcessEnv).writes).toBe("off");
+    expect(loadConfig({ ...base, SHOPIFY_WRITES: " Curated " } as NodeJS.ProcessEnv).writes).toBe(
+      "curated",
+    );
+    const all = loadConfig({ ...base, SHOPIFY_WRITES: "ALL" } as NodeJS.ProcessEnv);
+    expect(all.writes).toBe("all");
+    expect(all.writesInvalid).toBeUndefined();
+  });
+
+  // "true" and "1" are the natural guesses for a boolean-looking flag. They must
+  // never widen access, and the raw value is kept so auth_status can say why.
+  it.each(["true", "1", "yes", "write"])("falls back to off for %j and remembers it", (raw) => {
+    const cfg = loadConfig({ ...base, SHOPIFY_WRITES: raw } as NodeJS.ProcessEnv);
+    expect(cfg.writes).toBe("off");
+    expect(cfg.writesInvalid).toBe(raw);
+  });
+
+  it("explains an unrecognised value", () => {
+    const message = invalidWritesMessage("true");
+    expect(message).toContain('SHOPIFY_WRITES="true"');
+    expect(message).toContain("off, curated, all");
+    expect(message).toContain("writes are off");
   });
 });

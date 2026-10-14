@@ -1,35 +1,21 @@
-import { Client } from "@modelcontextprotocol/client";
-import { InMemoryTransport, McpServer } from "@modelcontextprotocol/server";
 import { describe, expect, it, vi } from "vitest";
 
-import { staticTokenProvider } from "#/client/auth";
-import { ShopifyGraphQLClient } from "#/client/graphql";
-import { registerTools } from "#/tools/index";
+import type { Config } from "#/config";
+
+import { connect } from "./harness.js";
 
 /**
  * Read the tool list off a real MCP client, so these assertions see exactly what
  * a host sees in `tools/list` — including the annotations, which a spy on the
  * registration call would not prove ever reach the wire.
  */
-const listTools = async (): Promise<Awaited<ReturnType<Client["listTools"]>>["tools"]> => {
-  const server = new McpServer({ name: "test", version: "0.0.0" });
-  const client = new ShopifyGraphQLClient({
-    storeDomain: "test.myshopify.com",
-    tokenProvider: staticTokenProvider("shpat_test"),
-    apiVersion: "2026-04",
-    fetch: vi.fn(async () => new Response("{}", { status: 200 })) as unknown as typeof fetch,
-  });
-  registerTools(server, client, {
-    storeDomain: "test.myshopify.com",
-    clientId: "id",
-    clientSecret: "secret",
-    apiVersion: "2026-04",
-    maxRetries: 3,
-  });
-
-  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-  const mcp = new Client({ name: "test", version: "0.0.0" });
-  await Promise.all([server.connect(serverTransport), mcp.connect(clientTransport)]);
+const listTools = async (
+  overrides: Partial<Config> = {},
+): Promise<Awaited<ReturnType<Awaited<ReturnType<typeof connect>>["listTools"]>>["tools"]> => {
+  const mcp = await connect(
+    vi.fn(async () => new Response("{}", { status: 200 })),
+    overrides,
+  );
   return (await mcp.listTools()).tools;
 };
 

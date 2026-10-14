@@ -1,55 +1,6 @@
-import { Client } from "@modelcontextprotocol/client";
-import { InMemoryTransport, McpServer } from "@modelcontextprotocol/server";
 import { describe, expect, it, vi } from "vitest";
 
-import { staticTokenProvider } from "#/client/auth";
-import { ShopifyGraphQLClient } from "#/client/graphql";
-import { registerTools } from "#/tools/index";
-
-const graphqlResponse = (body: unknown): Response =>
-  new Response(JSON.stringify(body), {
-    status: 200,
-    headers: { "content-type": "application/json" },
-  });
-
-/**
- * Wire the real tools to a real MCP client over an in-memory transport, with
- * only `fetch` faked — so a call exercises the tool schema, the query module and
- * the GraphQL client the same way a live call would.
- */
-const connect = async (fetchImpl: ReturnType<typeof vi.fn>): Promise<Client> => {
-  const server = new McpServer({ name: "test", version: "0.0.0" });
-  const client = new ShopifyGraphQLClient({
-    storeDomain: "test.myshopify.com",
-    tokenProvider: staticTokenProvider("shpat_test"),
-    apiVersion: "2026-04",
-    fetch: fetchImpl as unknown as typeof fetch,
-  });
-  registerTools(server, client, {
-    storeDomain: "test.myshopify.com",
-    clientId: "id",
-    clientSecret: "secret",
-    apiVersion: "2026-04",
-    maxRetries: 3,
-  });
-
-  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-  const mcp = new Client({ name: "test", version: "0.0.0" });
-  await Promise.all([server.connect(serverTransport), mcp.connect(clientTransport)]);
-  return mcp;
-};
-
-type GraphQLRequestBody = { query: string; variables?: Record<string, unknown> };
-
-const lastRequest = (
-  fetchImpl: ReturnType<typeof vi.fn>,
-): { url: string; body: GraphQLRequestBody } => {
-  const [url, init] = fetchImpl.mock.calls.at(-1) as unknown as [string, RequestInit];
-  return { url, body: JSON.parse(init.body as string) as GraphQLRequestBody };
-};
-
-const payload = <T = Record<string, unknown>>(result: Awaited<ReturnType<Client["callTool"]>>): T =>
-  JSON.parse((result.content as { text: string }[])[0]!.text) as T;
+import { connect, graphqlResponse, lastRequest, payload } from "./harness.js";
 
 describe("shopify_list_products", () => {
   it("posts to the versioned admin endpoint with the pagination variables", async () => {
