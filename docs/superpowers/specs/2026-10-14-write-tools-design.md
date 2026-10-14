@@ -26,10 +26,10 @@ and any dry-run mode (MCP clients already show tool input before approving a cal
 
 New env var **`SHOPIFY_WRITES`** with three levels, default `off`:
 
-| Level     | Registers                                         |
-| --------- | ------------------------------------------------- |
-| `off`     | Nothing new. Identical to 0.5.x.                  |
-| `curated` | The six curated write tools below.                |
+| Level     | Registers                                             |
+| --------- | ----------------------------------------------------- |
+| `off`     | Nothing new. Identical to 0.5.x.                      |
+| `curated` | The six curated write tools below.                    |
 | `all`     | The curated tools **and** `shopify_graphql_mutation`. |
 
 - Parsing is case-insensitive and trims whitespace. Empty or unset is `off`. Any other

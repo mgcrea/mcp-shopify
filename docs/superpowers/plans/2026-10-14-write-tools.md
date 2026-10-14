@@ -65,12 +65,14 @@ README.md, .env.example, .mcp.json.example   modify — docs
 ### Task 1: `SHOPIFY_WRITES` config and a shared test harness
 
 **Files:**
+
 - Modify: `src/config.ts`
 - Modify: `src/cli.ts`
 - Create: `test/harness.ts`
 - Modify: `test/config.test.ts`, `test/tools.test.ts`, `test/tool-calls.test.ts`
 
 **Interfaces:**
+
 - Produces (in `#/config`):
   - `WRITE_LEVELS: readonly ["off", "curated", "all"]`
   - `type WriteLevel = "off" | "curated" | "all"`
@@ -163,7 +165,9 @@ Add after `parseIntOpt`:
  * Anything other than the three levels resolves to "off": a typo or a guessed
  * boolean ("true", "1") must never widen what an agent can do.
  */
-export const parseWriteLevel = (raw: string | undefined): { level: WriteLevel; invalid?: string } => {
+export const parseWriteLevel = (
+  raw: string | undefined,
+): { level: WriteLevel; invalid?: string } => {
   if (raw === undefined) return { level: "off" };
   const value = raw.trim().toLowerCase();
   if (value === "") return { level: "off" };
@@ -285,7 +289,7 @@ Replace everything from the top of the file through the `const payload = ...;` d
 ```ts
 import { describe, expect, it, vi } from "vitest";
 
-import { connect, graphqlResponse, lastRequest, payload } from "./harness";
+import { connect, graphqlResponse, lastRequest, payload } from "./harness.js";
 ```
 
 Leave every `describe` block below unchanged.
@@ -299,7 +303,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { Config } from "#/config";
 
-import { connect } from "./harness";
+import { connect } from "./harness.js";
 
 /**
  * Read the tool list off a real MCP client, so these assertions see exactly what
@@ -324,12 +328,12 @@ Change the import to `import { invalidWritesMessage, isConfigured, loadConfig, s
 Change the connected line to:
 
 ```ts
-  stderrLogger.warn(
-    `shopify-mcp connected (store=${config.storeDomain}, api=${config.apiVersion}, writes=${config.writes})`,
-  );
-  if (config.writesInvalid !== undefined) {
-    stderrLogger.warn(`  ${invalidWritesMessage(config.writesInvalid)}`);
-  }
+stderrLogger.warn(
+  `shopify-mcp connected (store=${config.storeDomain}, api=${config.apiVersion}, writes=${config.writes})`,
+);
+if (config.writesInvalid !== undefined) {
+  stderrLogger.warn(`  ${invalidWritesMessage(config.writesInvalid)}`);
+}
 ```
 
 - [ ] **Step 10: Run everything**
@@ -350,6 +354,7 @@ git commit -m "feat: parse SHOPIFY_WRITES into a write level, off by default"
 ### Task 2: userErrors helper, level-gated registration, metafield write tools
 
 **Files:**
+
 - Create: `src/client/user-errors.ts`
 - Create: `src/client/mutations/metafields.ts`
 - Create: `src/tools/write-metafields.ts`
@@ -359,6 +364,7 @@ git commit -m "feat: parse SHOPIFY_WRITES into a write level, off by default"
 - Create: `test/user-errors.test.ts`
 
 **Interfaces:**
+
 - Consumes: `Config.writes`; harness `connect`, `graphqlResponse`, `lastRequest`, `payload`, `isRejected`.
 - Produces (in `#/client/user-errors`):
   - `type UserError = { field?: string[] | null; message: string; code?: string | null }`
@@ -384,7 +390,9 @@ describe("assertNoUserErrors", () => {
   });
 
   it("throws a ShopifyApiError carrying the userErrors", () => {
-    const userErrors = [{ field: ["metafields", "0", "type"], message: "Type is invalid", code: "INVALID_TYPE" }];
+    const userErrors = [
+      { field: ["metafields", "0", "type"], message: "Type is invalid", code: "INVALID_TYPE" },
+    ];
     let caught: unknown;
     try {
       assertNoUserErrors({ metafields: [], userErrors }, "metafieldsSet");
@@ -535,9 +543,9 @@ describe("write levels", () => {
 Also update the comment above the existing `"advertises every tool as read-only"` test to:
 
 ```ts
-  // At the default level (off) the server is still read-only end to end. This is
-  // what makes that claim machine-readable to a host, so it should fail loudly
-  // if a mutating tool is ever registered at off.
+// At the default level (off) the server is still read-only end to end. This is
+// what makes that claim machine-readable to a host, so it should fail loudly
+// if a mutating tool is ever registered at off.
 ```
 
 - [ ] **Step 6: Write the failing call tests — `test/write-tools.test.ts`**
@@ -545,7 +553,7 @@ Also update the comment above the existing `"advertises every tool as read-only"
 ```ts
 import { describe, expect, it, vi } from "vitest";
 
-import { connect, graphqlResponse, isRejected, lastRequest, payload } from "./harness";
+import { connect, graphqlResponse, isRejected, lastRequest, payload } from "./harness.js";
 
 const curated = { writes: "curated" as const };
 
@@ -553,7 +561,9 @@ describe("shopify_set_metafields", () => {
   it("sends the metafields and returns the mutation payload", async () => {
     const fetchImpl = vi.fn(async () =>
       graphqlResponse({
-        data: { metafieldsSet: { metafields: [{ id: "gid://shopify/Metafield/9" }], userErrors: [] } },
+        data: {
+          metafieldsSet: { metafields: [{ id: "gid://shopify/Metafield/9" }], userErrors: [] },
+        },
       }),
     );
     const mcp = await connect(fetchImpl, curated);
@@ -567,7 +577,10 @@ describe("shopify_set_metafields", () => {
       },
     ];
 
-    const result = await mcp.callTool({ name: "shopify_set_metafields", arguments: { metafields } });
+    const result = await mcp.callTool({
+      name: "shopify_set_metafields",
+      arguments: { metafields },
+    });
 
     const { body } = lastRequest(fetchImpl);
     expect(body.query).toContain("metafieldsSet(metafields: $metafields)");
@@ -604,12 +617,16 @@ describe("shopify_set_metafields", () => {
       value: "v",
     }));
 
-    expect(await isRejected(mcp.callTool({ name: "shopify_set_metafields", arguments: { metafields } }))).toBe(true);
+    expect(
+      await isRejected(mcp.callTool({ name: "shopify_set_metafields", arguments: { metafields } })),
+    ).toBe(true);
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
   it("turns userErrors into a tool error with the details", async () => {
-    const userErrors = [{ field: ["metafields", "0", "type"], message: "Type can't be blank", code: "BLANK" }];
+    const userErrors = [
+      { field: ["metafields", "0", "type"], message: "Type can't be blank", code: "BLANK" },
+    ];
     const fetchImpl = vi.fn(async () =>
       graphqlResponse({ data: { metafieldsSet: { metafields: [], userErrors } } }),
     );
@@ -618,7 +635,9 @@ describe("shopify_set_metafields", () => {
     const result = await mcp.callTool({
       name: "shopify_set_metafields",
       arguments: {
-        metafields: [{ ownerId: "gid://shopify/Product/1", namespace: "custom", key: "k", value: "v" }],
+        metafields: [
+          { ownerId: "gid://shopify/Product/1", namespace: "custom", key: "k", value: "v" },
+        ],
       },
     });
 
@@ -635,9 +654,14 @@ describe("shopify_delete_metafields", () => {
       graphqlResponse({ data: { metafieldsDelete: { deletedMetafields: [], userErrors: [] } } }),
     );
     const mcp = await connect(fetchImpl, curated);
-    const metafields = [{ ownerId: "gid://shopify/ProductVariant/2", namespace: "custom", key: "k" }];
+    const metafields = [
+      { ownerId: "gid://shopify/ProductVariant/2", namespace: "custom", key: "k" },
+    ];
 
-    const result = await mcp.callTool({ name: "shopify_delete_metafields", arguments: { metafields } });
+    const result = await mcp.callTool({
+      name: "shopify_delete_metafields",
+      arguments: { metafields },
+    });
 
     const { body } = lastRequest(fetchImpl);
     expect(body.query).toContain("metafieldsDelete(metafields: $metafields)");
@@ -773,7 +797,11 @@ export const registerMetafieldWriteTools = (
         "Delete up to 25 metafields, each identified by owner gid + namespace + key. This " +
         "cannot be undone.",
       inputSchema: z.object({
-        metafields: z.array(z.object(identifier)).min(1).max(25).describe("1-25 metafields to delete."),
+        metafields: z
+          .array(z.object(identifier))
+          .min(1)
+          .max(25)
+          .describe("1-25 metafields to delete."),
       }),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
     },
@@ -811,9 +839,8 @@ Replace the doc comment and the end of `registerTools`:
 and after `registerGraphqlTool(server, client, apiVersion);`:
 
 ```ts
-
-  if (config.writes === "off") return;
-  registerMetafieldWriteTools(server, client);
+if (config.writes === "off") return;
+registerMetafieldWriteTools(server, client);
 ```
 
 - [ ] **Step 11: Run all tests**
@@ -834,12 +861,14 @@ git commit -m "feat: add metafield write tools behind SHOPIFY_WRITES"
 ### Task 3: Product and variant write tools
 
 **Files:**
+
 - Create: `src/client/mutations/products.ts`
 - Create: `src/tools/write-products.ts`
 - Modify: `src/tools/index.ts`
 - Modify: `test/tools.test.ts`, `test/write-tools.test.ts`
 
 **Interfaces:**
+
 - Consumes: `assertNoUserErrors`, `MutationPayload` from `#/client/user-errors`; `toGid` from `#/client/gid`.
 - Produces: `registerProductWriteTools(server: McpServer, client: ShopifyGraphQLClient): void` in `#/tools/write-products`.
 
@@ -867,7 +896,9 @@ and add to `WRITE_ANNOTATIONS`:
 describe("shopify_update_product", () => {
   const ok = () =>
     vi.fn(async () =>
-      graphqlResponse({ data: { productUpdate: { product: { id: "gid://shopify/Product/1" }, userErrors: [] } } }),
+      graphqlResponse({
+        data: { productUpdate: { product: { id: "gid://shopify/Product/1" }, userErrors: [] } },
+      }),
     );
 
   it("normalizes the id and sends only the fields given", async () => {
@@ -916,7 +947,12 @@ describe("shopify_update_product", () => {
   it("turns userErrors into a tool error", async () => {
     const fetchImpl = vi.fn(async () =>
       graphqlResponse({
-        data: { productUpdate: { product: null, userErrors: [{ field: ["handle"], message: "Handle is taken" }] } },
+        data: {
+          productUpdate: {
+            product: null,
+            userErrors: [{ field: ["handle"], message: "Handle is taken" }],
+          },
+        },
       }),
     );
     const mcp = await connect(fetchImpl, curated);
@@ -934,7 +970,9 @@ describe("shopify_update_product", () => {
 describe("shopify_update_variants", () => {
   const ok = () =>
     vi.fn(async () =>
-      graphqlResponse({ data: { productVariantsBulkUpdate: { productVariants: [], userErrors: [] } } }),
+      graphqlResponse({
+        data: { productVariantsBulkUpdate: { productVariants: [], userErrors: [] } },
+      }),
     );
 
   it("maps sku into inventoryItem and normalizes ids", async () => {
@@ -947,7 +985,9 @@ describe("shopify_update_variants", () => {
     });
 
     const { body } = lastRequest(fetchImpl);
-    expect(body.query).toContain("productVariantsBulkUpdate(productId: $productId, variants: $variants)");
+    expect(body.query).toContain(
+      "productVariantsBulkUpdate(productId: $productId, variants: $variants)",
+    );
     expect(body.variables).toEqual({
       productId: "gid://shopify/Product/1",
       variants: [
@@ -1064,7 +1104,10 @@ const money = z
   .string()
   .regex(/^\d+(\.\d+)?$/, 'Must be a non-negative decimal string, e.g. "12.50".');
 
-export const registerProductWriteTools = (server: McpServer, client: ShopifyGraphQLClient): void => {
+export const registerProductWriteTools = (
+  server: McpServer,
+  client: ShopifyGraphQLClient,
+): void => {
   server.registerTool(
     "shopify_update_product",
     {
@@ -1077,7 +1120,11 @@ export const registerProductWriteTools = (server: McpServer, client: ShopifyGrap
         id: z.string().describe("Product ID — numeric or gid."),
         title: z.string().min(1).optional(),
         descriptionHtml: z.string().optional().describe("The description, as HTML."),
-        handle: z.string().min(1).optional().describe("URL slug. Changing it changes the product URL."),
+        handle: z
+          .string()
+          .min(1)
+          .optional()
+          .describe("URL slug. Changing it changes the product URL."),
         vendor: z.string().optional(),
         productType: z.string().optional(),
         tags: z.array(z.string()).optional().describe("Replaces the entire tag list."),
@@ -1153,7 +1200,7 @@ export const registerProductWriteTools = (server: McpServer, client: ShopifyGrap
 Add `import { registerProductWriteTools } from "#/tools/write-products";` and, after `registerMetafieldWriteTools(server, client);`:
 
 ```ts
-  registerProductWriteTools(server, client);
+registerProductWriteTools(server, client);
 ```
 
 - [ ] **Step 7: Run all tests**
@@ -1174,12 +1221,14 @@ git commit -m "feat: add product and variant write tools"
 ### Task 4: Inventory write tools with idempotency keys
 
 **Files:**
+
 - Create: `src/client/mutations/inventory.ts`
 - Create: `src/tools/write-inventory.ts`
 - Modify: `src/tools/index.ts`
 - Modify: `test/tools.test.ts`, `test/write-tools.test.ts`
 
 **Interfaces:**
+
 - Consumes: `assertNoUserErrors`, `MutationPayload`; `toGid`; harness `requestBodies`.
 - Produces: `registerInventoryWriteTools(server: McpServer, client: ShopifyGraphQLClient): void` in `#/tools/write-inventory`. Both tools return the mutation payload plus `idempotencyKey: string`.
 
@@ -1202,7 +1251,12 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const adjustOk = () =>
   vi.fn(async () =>
     graphqlResponse({
-      data: { inventoryAdjustQuantities: { inventoryAdjustmentGroup: { reason: "correction" }, userErrors: [] } },
+      data: {
+        inventoryAdjustQuantities: {
+          inventoryAdjustmentGroup: { reason: "correction" },
+          userErrors: [],
+        },
+      },
     }),
   );
 
@@ -1297,12 +1351,16 @@ describe("shopify_set_inventory", () => {
       name: "shopify_set_inventory",
       arguments: {
         reason: "cycle_count_available",
-        quantities: [{ inventoryItemId: "10", locationId: "20", quantity: 7, changeFromQuantity: 5 }],
+        quantities: [
+          { inventoryItemId: "10", locationId: "20", quantity: 7, changeFromQuantity: 5 },
+        ],
       },
     });
 
     const { body } = lastRequest(fetchImpl);
-    expect(body.query).toContain("inventorySetQuantities(input: $input) @idempotent(key: $idempotencyKey)");
+    expect(body.query).toContain(
+      "inventorySetQuantities(input: $input) @idempotent(key: $idempotencyKey)",
+    );
     expect(body.variables!.input).toEqual({
       name: "available",
       reason: "cycle_count_available",
@@ -1339,10 +1397,16 @@ describe("shopify_set_inventory", () => {
 
   it("surfaces a stale changeFromQuantity as a tool error with its code", async () => {
     const userErrors = [
-      { field: ["input", "quantities", "0"], message: "The quantity has changed", code: "CHANGE_FROM_QUANTITY_STALE" },
+      {
+        field: ["input", "quantities", "0"],
+        message: "The quantity has changed",
+        code: "CHANGE_FROM_QUANTITY_STALE",
+      },
     ];
     const fetchImpl = vi.fn(async () =>
-      graphqlResponse({ data: { inventorySetQuantities: { inventoryAdjustmentGroup: null, userErrors } } }),
+      graphqlResponse({
+        data: { inventorySetQuantities: { inventoryAdjustmentGroup: null, userErrors } },
+      }),
     );
     const mcp = await connect(fetchImpl, curated);
 
@@ -1350,7 +1414,9 @@ describe("shopify_set_inventory", () => {
       name: "shopify_set_inventory",
       arguments: {
         reason: "correction",
-        quantities: [{ inventoryItemId: "10", locationId: "20", quantity: 7, changeFromQuantity: 5 }],
+        quantities: [
+          { inventoryItemId: "10", locationId: "20", quantity: 7, changeFromQuantity: 5 },
+        ],
       },
     });
 
@@ -1476,8 +1542,12 @@ const idempotencyKey = z
       "retry that same call after a timeout — Shopify then applies it at most once.",
   );
 
-const itemId = z.string().describe("Inventory item ID — numeric or gid (from shopify_get_variant_inventory).");
-const locationId = z.string().describe("Location ID — numeric or gid (from shopify_list_locations).");
+const itemId = z
+  .string()
+  .describe("Inventory item ID — numeric or gid (from shopify_get_variant_inventory).");
+const locationId = z
+  .string()
+  .describe("Location ID — numeric or gid (from shopify_list_locations).");
 
 // Minted once per tool call, outside client.request, so the client's own
 // retries (429 / THROTTLED / 401) resend the same key and Shopify applies the
@@ -1574,7 +1644,9 @@ export const registerInventoryWriteTools = (
               changeFromQuantity: z
                 .number()
                 .int()
-                .describe("The quantity you last read. Required, so a concurrent change isn't overwritten."),
+                .describe(
+                  "The quantity you last read. Required, so a concurrent change isn't overwritten.",
+                ),
             }),
           )
           .min(1)
@@ -1617,7 +1689,7 @@ Note: `referenceDocumentUri` / `ledgerDocumentUri` are `undefined` when omitted 
 Add `import { registerInventoryWriteTools } from "#/tools/write-inventory";` and, after `registerProductWriteTools(server, client);`:
 
 ```ts
-  registerInventoryWriteTools(server, client);
+registerInventoryWriteTools(server, client);
 ```
 
 - [ ] **Step 7: Run all tests**
@@ -1638,6 +1710,7 @@ git commit -m "feat: add inventory write tools with per-call idempotency keys"
 ### Task 5: Raw `shopify_graphql_mutation` tool (`all` only)
 
 **Files:**
+
 - Modify: `src/tools/graphql.ts`
 - Create: `src/tools/graphql-mutation.ts`
 - Modify: `src/tools/index.ts`
@@ -1645,6 +1718,7 @@ git commit -m "feat: add inventory write tools with per-call idempotency keys"
 - Create: `test/graphql-mutation.test.ts`
 
 **Interfaces:**
+
 - Consumes: `collectUserErrors` from `#/client/user-errors`.
 - Produces: `stripNoise(document: string): string` in `#/tools/graphql`; `assertNoSubscription(document: string): void` and `registerGraphqlMutationTool(server: McpServer, client: ShopifyGraphQLClient, apiVersion: string): void` in `#/tools/graphql-mutation`.
 
@@ -1653,20 +1727,22 @@ git commit -m "feat: add inventory write tools with per-call idempotency keys"
 Inside `describe("write levels", ...)`:
 
 ```ts
-  it("adds shopify_graphql_mutation only at all", async () => {
-    const tools = await listTools({ writes: "all" });
-    const names = tools.map((tool) => tool.name);
-    expect(names).toEqual(expect.arrayContaining([...CURATED_WRITE_TOOLS, "shopify_graphql_mutation"]));
-    expect(names).toHaveLength(14 + CURATED_WRITE_TOOLS.length + 1);
-    expect(tools.find((t) => t.name === "shopify_graphql_mutation")?.annotations).toMatchObject({
-      readOnlyHint: false,
-      destructiveHint: true,
-      idempotentHint: false,
-      openWorldHint: true,
-    });
-    // The read escape hatch keeps its read-only promise at every level.
-    expect(tools.find((t) => t.name === "shopify_graphql")?.annotations?.readOnlyHint).toBe(true);
+it("adds shopify_graphql_mutation only at all", async () => {
+  const tools = await listTools({ writes: "all" });
+  const names = tools.map((tool) => tool.name);
+  expect(names).toEqual(
+    expect.arrayContaining([...CURATED_WRITE_TOOLS, "shopify_graphql_mutation"]),
+  );
+  expect(names).toHaveLength(14 + CURATED_WRITE_TOOLS.length + 1);
+  expect(tools.find((t) => t.name === "shopify_graphql_mutation")?.annotations).toMatchObject({
+    readOnlyHint: false,
+    destructiveHint: true,
+    idempotentHint: false,
+    openWorldHint: true,
   });
+  // The read escape hatch keeps its read-only promise at every level.
+  expect(tools.find((t) => t.name === "shopify_graphql")?.annotations?.readOnlyHint).toBe(true);
+});
 ```
 
 - [ ] **Step 2: Write the failing call tests — `test/graphql-mutation.test.ts`**
@@ -1676,7 +1752,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { assertNoSubscription } from "#/tools/graphql-mutation";
 
-import { connect, graphqlResponse, lastRequest, payload } from "./harness";
+import { connect, graphqlResponse, lastRequest, payload } from "./harness.js";
 
 const all = { writes: "all" as const };
 
@@ -1685,14 +1761,18 @@ describe("shopify_graphql_mutation", () => {
     const data = { productDelete: { deletedProductId: "gid://shopify/Product/1", userErrors: [] } };
     const fetchImpl = vi.fn(async () => graphqlResponse({ data }));
     const mcp = await connect(fetchImpl, all);
-    const query = "mutation D($id: ID!) { productDelete(input: { id: $id }) { deletedProductId userErrors { message } } }";
+    const query =
+      "mutation D($id: ID!) { productDelete(input: { id: $id }) { deletedProductId userErrors { message } } }";
 
     const result = await mcp.callTool({
       name: "shopify_graphql_mutation",
       arguments: { query, variables: { id: "gid://shopify/Product/1" } },
     });
 
-    expect(lastRequest(fetchImpl).body).toEqual({ query, variables: { id: "gid://shopify/Product/1" } });
+    expect(lastRequest(fetchImpl).body).toEqual({
+      query,
+      variables: { id: "gid://shopify/Product/1" },
+    });
     expect(result.isError).toBeFalsy();
     expect(payload(result)).toEqual(data);
   });
@@ -1707,11 +1787,15 @@ describe("shopify_graphql_mutation", () => {
 
     const result = await mcp.callTool({
       name: "shopify_graphql_mutation",
-      arguments: { query: "mutation { a { userErrors { message } } b { userErrors { message } } }" },
+      arguments: {
+        query: "mutation { a { userErrors { message } } b { userErrors { message } } }",
+      },
     });
 
     expect(result.isError).toBe(true);
-    const failure = payload<{ error: string; details: { userErrors: unknown; data: unknown } }>(result);
+    const failure = payload<{ error: string; details: { userErrors: unknown; data: unknown } }>(
+      result,
+    );
     expect(failure.error).toContain("b: Not found");
     expect(failure.details.userErrors).toEqual({ b: data.b.userErrors });
     expect(failure.details.data).toEqual(data);
@@ -1834,7 +1918,9 @@ export const registerGraphqlMutationTool = (
         variables: z
           .record(z.string(), z.unknown())
           .optional()
-          .describe("Optional GraphQL variables object matching the document's declared variables."),
+          .describe(
+            "Optional GraphQL variables object matching the document's declared variables.",
+          ),
       }),
       annotations: {
         readOnlyHint: false,
@@ -1869,9 +1955,8 @@ export const registerGraphqlMutationTool = (
 Add `import { registerGraphqlMutationTool } from "#/tools/graphql-mutation";` and, after `registerInventoryWriteTools(server, client);`:
 
 ```ts
-
-  // Raw mutations reach anything the scopes allow, so they need the higher level.
-  if (config.writes === "all") registerGraphqlMutationTool(server, client, apiVersion);
+// Raw mutations reach anything the scopes allow, so they need the higher level.
+if (config.writes === "all") registerGraphqlMutationTool(server, client, apiVersion);
 ```
 
 - [ ] **Step 7: Run all tests**
@@ -1892,12 +1977,14 @@ git commit -m "feat: add shopify_graphql_mutation at SHOPIFY_WRITES=all"
 ### Task 6: `shopify_auth_status` reports writes, scopes and warnings
 
 **Files:**
+
 - Modify: `src/client/queries/shop.ts`
 - Modify: `src/tools/status.ts`
 - Modify: `src/tools/index.ts`
 - Create: `test/status.test.ts`
 
 **Interfaces:**
+
 - Consumes: `Config.writes`, `Config.writesInvalid`, `invalidWritesMessage` from `#/config`.
 - Produces: `ACCESS_SCOPES_QUERY` in `#/client/queries/shop`; `writeWarnings(config: Config, scopes: string[] | null): string[]` and `registerStatusTool(server: McpServer, config: Config, client: ShopifyGraphQLClient): void` in `#/tools/status`.
 - Status payload: `{ configured, store, apiVersion, writes, scopes, scopesError?, warnings, setup }`.
@@ -1910,7 +1997,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { Config } from "#/config";
 import { writeWarnings } from "#/tools/status";
 
-import { connect, graphqlResponse, payload, testConfig } from "./harness";
+import { connect, graphqlResponse, payload, testConfig } from "./harness.js";
 
 type Status = {
   configured: boolean;
@@ -1937,9 +2024,12 @@ const status = async (
 
 describe("shopify_auth_status", () => {
   it("reports the write level and the granted scopes", async () => {
-    const result = await status(scopesResponse(["read_products", "write_products", "write_inventory"]), {
-      writes: "curated",
-    });
+    const result = await status(
+      scopesResponse(["read_products", "write_products", "write_inventory"]),
+      {
+        writes: "curated",
+      },
+    );
     expect(result.writes).toBe("curated");
     expect(result.scopes).toEqual(["read_products", "write_products", "write_inventory"]);
     expect(result.warnings).toEqual([]);
@@ -1961,7 +2051,9 @@ describe("shopify_auth_status", () => {
   });
 
   it("still answers when the scopes lookup fails", async () => {
-    const fetchImpl = vi.fn(async () => graphqlResponse({ errors: [{ message: "Access denied" }] }));
+    const fetchImpl = vi.fn(async () =>
+      graphqlResponse({ errors: [{ message: "Access denied" }] }),
+    );
     const result = await status(fetchImpl, { writes: "curated" });
     expect(result.configured).toBe(true);
     expect(result.scopes).toBeNull();
@@ -2131,6 +2223,7 @@ git commit -m "feat: report write level, granted scopes and scope gaps in shopif
 ### Task 7: Documentation
 
 **Files:**
+
 - Modify: `README.md`
 - Modify: `.env.example`
 - Modify: `.mcp.json.example`
@@ -2193,7 +2286,7 @@ In the numbered setup list, replace step 2 with:
 Add this row to the env table, after `SHOPIFY_MAX_RETRIES`:
 
 ```markdown
-| `SHOPIFY_WRITES`        | no       | `off` (default), `curated` or `all`. Anything else is treated as `off`. See [Writes](#writes). |
+| `SHOPIFY_WRITES` | no | `off` (default), `curated` or `all`. Anything else is treated as `off`. See [Writes](#writes). |
 ```
 
 Then run `pnpm format` so oxfmt re-aligns the table.
@@ -2207,25 +2300,25 @@ Insert a new section between **Tools**'s closing pagination paragraph and **Deve
 
 Off unless you set `SHOPIFY_WRITES`:
 
-| Level     | Adds                                    | Scopes the app needs                  |
-| --------- | --------------------------------------- | ------------------------------------- |
-| `off`     | nothing — the read-only server above     | `read_*` only                         |
-| `curated` | the six write tools below                | `write_products`, `write_inventory`   |
-| `all`     | those, plus `shopify_graphql_mutation`   | whatever your mutations touch         |
+| Level     | Adds                                   | Scopes the app needs                |
+| --------- | -------------------------------------- | ----------------------------------- |
+| `off`     | nothing — the read-only server above   | `read_*` only                       |
+| `curated` | the six write tools below              | `write_products`, `write_inventory` |
+| `all`     | those, plus `shopify_graphql_mutation` | whatever your mutations touch       |
 
 ```json
 "env": { "SHOPIFY_WRITES": "curated" }
 ```
 
-| Tool                         | Level   | Purpose                                                                                     |
-| ---------------------------- | ------- | ------------------------------------------------------------------------------------------- |
-| `shopify_set_metafields`     | curated | Create or update up to 25 metafields on any owner (gid required).                           |
-| `shopify_delete_metafields`  | curated | Delete up to 25 metafields.                                                                 |
-| `shopify_update_product`     | curated | Update title, description, handle, vendor, type, tags (replaces the list), status, SEO.     |
-| `shopify_update_variants`    | curated | Update price, compare-at price, barcode, SKU, taxable on up to 100 variants of a product.   |
-| `shopify_adjust_inventory`   | curated | Change quantities by a delta at one or more locations.                                      |
-| `shopify_set_inventory`      | curated | Set absolute quantities; requires the quantity you last read, so a sale isn't overwritten. |
-| `shopify_graphql_mutation`   | all     | Run any mutation. Fails if any field returns `userErrors`.                                  |
+| Tool                        | Level   | Purpose                                                                                    |
+| --------------------------- | ------- | ------------------------------------------------------------------------------------------ |
+| `shopify_set_metafields`    | curated | Create or update up to 25 metafields on any owner (gid required).                          |
+| `shopify_delete_metafields` | curated | Delete up to 25 metafields.                                                                |
+| `shopify_update_product`    | curated | Update title, description, handle, vendor, type, tags (replaces the list), status, SEO.    |
+| `shopify_update_variants`   | curated | Update price, compare-at price, barcode, SKU, taxable on up to 100 variants of a product.  |
+| `shopify_adjust_inventory`  | curated | Change quantities by a delta at one or more locations.                                     |
+| `shopify_set_inventory`     | curated | Set absolute quantities; requires the quantity you last read, so a sale isn't overwritten. |
+| `shopify_graphql_mutation`  | all     | Run any mutation. Fails if any field returns `userErrors`.                                 |
 
 Every write reports Shopify's `userErrors` as a tool error, so a rejected write never comes
 back looking like a success. The inventory tools send an `@idempotent` key, generated per
