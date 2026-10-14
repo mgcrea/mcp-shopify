@@ -10,13 +10,17 @@ import { registerProductTools } from "#/tools/products";
 import { registerShopTools } from "#/tools/shop";
 import { registerStatusTool } from "#/tools/status";
 import { registerVariantTools } from "#/tools/variants";
+import { registerMetafieldWriteTools } from "#/tools/write-metafields";
 
 /**
- * Register every read-only Shopify tool.
+ * Register the Shopify tools.
  *
  * shopify_auth_status comes first and unconditionally, so an unconfigured
  * server is still a useful one — it can say what to set — rather than a
  * connection that closes with its own error message swallowed.
+ *
+ * Write tools are registered only when SHOPIFY_WRITES enables them: at "off" a
+ * client can't see, and so can't call, any of them.
  */
 export const registerTools = (
   server: McpServer,
@@ -34,4 +38,7 @@ export const registerTools = (
   registerInventoryTools(server, client);
   registerShopTools(server, client);
   registerGraphqlTool(server, client, apiVersion);
+
+  if (config.writes === "off") return;
+  registerMetafieldWriteTools(server, client);
 };

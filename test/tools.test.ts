@@ -19,6 +19,14 @@ const listTools = async (
   return (await mcp.listTools()).tools;
 };
 
+// Extended as each curated write family lands.
+const CURATED_WRITE_TOOLS = ["shopify_set_metafields", "shopify_delete_metafields"];
+
+const WRITE_ANNOTATIONS: Record<string, { destructiveHint: boolean; idempotentHint: boolean }> = {
+  shopify_set_metafields: { destructiveHint: false, idempotentHint: true },
+  shopify_delete_metafields: { destructiveHint: true, idempotentHint: true },
+};
+
 describe("tool registration", () => {
   it("registers every Shopify query tool", async () => {
     const names = (await listTools()).map((tool) => tool.name);
@@ -47,9 +55,9 @@ describe("tool registration", () => {
     expect(await listTools()).toHaveLength(14);
   });
 
-  // The README's first blast-radius claim is that this server is read-only by
-  // construction. This is what makes that claim machine-readable to a host, so
-  // it should fail loudly if a mutating tool is ever added without thought.
+  // At the default level (off) the server is still read-only end to end. This is
+  // what makes that claim machine-readable to a host, so it should fail loudly
+  // if a mutating tool is ever registered at off.
   it("advertises every tool as read-only", async () => {
     const tools = await listTools();
     expect(
@@ -60,5 +68,40 @@ describe("tool registration", () => {
   it("keeps a description on every tool", async () => {
     const tools = await listTools();
     expect(tools.filter((tool) => !tool.description?.trim()).map((tool) => tool.name)).toEqual([]);
+  });
+});
+
+describe("write levels", () => {
+  it("registers no write tool at off", async () => {
+    const names = (await listTools({ writes: "off" })).map((tool) => tool.name);
+    expect(names).toHaveLength(14);
+    expect(names.filter((name) => CURATED_WRITE_TOOLS.includes(name))).toEqual([]);
+    expect(names).not.toContain("shopify_graphql_mutation");
+  });
+
+  it("registers the curated write tools at curated, and nothing else new", async () => {
+    const names = (await listTools({ writes: "curated" })).map((tool) => tool.name);
+    expect(names).toEqual(expect.arrayContaining(CURATED_WRITE_TOOLS));
+    expect(names).toHaveLength(14 + CURATED_WRITE_TOOLS.length);
+    expect(names).not.toContain("shopify_graphql_mutation");
+  });
+
+  it("annotates every write tool explicitly", async () => {
+    const tools = await listTools({ writes: "curated" });
+    for (const name of CURATED_WRITE_TOOLS) {
+      const tool = tools.find((t) => t.name === name);
+      expect(tool?.annotations, name).toMatchObject({
+        readOnlyHint: false,
+        ...WRITE_ANNOTATIONS[name],
+      });
+    }
+  });
+
+  it("keeps every non-write tool read-only at curated", async () => {
+    const tools = await listTools({ writes: "curated" });
+    const loose = tools.filter(
+      (tool) => !CURATED_WRITE_TOOLS.includes(tool.name) && tool.annotations?.readOnlyHint !== true,
+    );
+    expect(loose.map((tool) => tool.name)).toEqual([]);
   });
 });
