@@ -50,10 +50,12 @@ describe("shopify_auth_status", () => {
     expect(result.warnings[0]).toContain("shopify_set_inventory");
   });
 
-  it("reports an unrecognised SHOPIFY_WRITES value", async () => {
-    const result = await status(scopesResponse(["read_products"]), { writesInvalid: "true" });
+  it("passes configuration warnings through", async () => {
+    const result = await status(scopesResponse(["read_products"]), {
+      configWarnings: ['SHOPIFY_ALLOW_WRITES="2" is not a recognised boolean'],
+    });
     expect(result.writes).toBe("off");
-    expect(result.warnings).toEqual([expect.stringContaining('SHOPIFY_WRITES="true"')]);
+    expect(result.warnings).toEqual([expect.stringContaining('SHOPIFY_ALLOW_WRITES="2"')]);
   });
 
   it("still answers when the scopes lookup fails", async () => {

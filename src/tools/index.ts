@@ -22,7 +22,7 @@ import { registerProductWriteTools } from "#/tools/write-products";
  * server is still a useful one — it can say what to set — rather than a
  * connection that closes with its own error message swallowed.
  *
- * Write tools are registered only when SHOPIFY_WRITES enables them: at "off" a
+ * Write tools are registered only when SHOPIFY_ALLOW_WRITES enables them: at "off" a
  * client can't see, and so can't call, any of them.
  */
 export const registerTools = (

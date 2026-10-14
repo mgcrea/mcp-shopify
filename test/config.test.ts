@@ -1,12 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  invalidWritesMessage,
-  isConfigured,
-  loadConfig,
-  normalizeStoreDomain,
-  setupInstructions,
-} from "#/config";
+import { isConfigured, loadConfig, normalizeStoreDomain, setupInstructions } from "#/config";
 
 describe("normalizeStoreDomain", () => {
   it("strips protocol and path", () => {
@@ -75,41 +69,76 @@ describe("loadConfig", () => {
   });
 });
 
-describe("SHOPIFY_WRITES", () => {
+describe("write flags", () => {
   const base = {
     SHOPIFY_STORE_DOMAIN: "my-store",
     SHOPIFY_CLIENT_ID: "id",
     SHOPIFY_CLIENT_SECRET: "shpss_x",
   };
+  const load = (extra: Record<string, string>) =>
+    loadConfig({ ...base, ...extra } as NodeJS.ProcessEnv);
 
-  it("defaults to off when unset or empty", () => {
-    expect(loadConfig({ ...base } as NodeJS.ProcessEnv).writes).toBe("off");
-    expect(loadConfig({ ...base, SHOPIFY_WRITES: "  " } as NodeJS.ProcessEnv).writes).toBe("off");
-    expect(loadConfig({ ...base } as NodeJS.ProcessEnv).writesInvalid).toBeUndefined();
-  });
-
-  it("accepts the three levels, ignoring case and surrounding whitespace", () => {
-    expect(loadConfig({ ...base, SHOPIFY_WRITES: "off" } as NodeJS.ProcessEnv).writes).toBe("off");
-    expect(loadConfig({ ...base, SHOPIFY_WRITES: " Curated " } as NodeJS.ProcessEnv).writes).toBe(
-      "curated",
-    );
-    const all = loadConfig({ ...base, SHOPIFY_WRITES: "ALL" } as NodeJS.ProcessEnv);
-    expect(all.writes).toBe("all");
-    expect(all.writesInvalid).toBeUndefined();
-  });
-
-  // "true" and "1" are the natural guesses for a boolean-looking flag. They must
-  // never widen access, and the raw value is kept so auth_status can say why.
-  it.each(["true", "1", "yes", "write"])("falls back to off for %j and remembers it", (raw) => {
-    const cfg = loadConfig({ ...base, SHOPIFY_WRITES: raw } as NodeJS.ProcessEnv);
+  it("defaults to off with nothing set", () => {
+    const cfg = load({});
     expect(cfg.writes).toBe("off");
-    expect(cfg.writesInvalid).toBe(raw);
+    expect(cfg.configWarnings).toEqual([]);
   });
 
-  it("explains an unrecognised value", () => {
-    const message = invalidWritesMessage("true");
-    expect(message).toContain('SHOPIFY_WRITES="true"');
-    expect(message).toContain("off, curated, all");
-    expect(message).toContain("writes are off");
+  it.each(["1", "true", "YES", " on "])(
+    "SHOPIFY_ALLOW_WRITES=%j turns the curated tools on",
+    (raw) => {
+      const cfg = load({ SHOPIFY_ALLOW_WRITES: raw });
+      expect(cfg.writes).toBe("curated");
+      expect(cfg.configWarnings).toEqual([]);
+    },
+  );
+
+  it.each(["0", "false", "no", "off", ""])("SHOPIFY_ALLOW_WRITES=%j keeps writes off", (raw) => {
+    const cfg = load({ SHOPIFY_ALLOW_WRITES: raw });
+    expect(cfg.writes).toBe("off");
+    expect(cfg.configWarnings).toEqual([]);
   });
+
+  it("adds the raw mutation tool when both flags are on", () => {
+    const cfg = load({ SHOPIFY_ALLOW_WRITES: "1", SHOPIFY_ALLOW_RAW_MUTATIONS: "1" });
+    expect(cfg.writes).toBe("all");
+    expect(cfg.configWarnings).toEqual([]);
+  });
+
+  // The second switch must never work on its own: raw mutations reach more than
+  // the curated tools, so they can't be the way writes get turned on.
+  it("ignores SHOPIFY_ALLOW_RAW_MUTATIONS without SHOPIFY_ALLOW_WRITES, and says so", () => {
+    const cfg = load({ SHOPIFY_ALLOW_RAW_MUTATIONS: "1" });
+    expect(cfg.writes).toBe("off");
+    expect(cfg.configWarnings).toEqual([
+      expect.stringContaining(
+        "SHOPIFY_ALLOW_RAW_MUTATIONS=1 has no effect without SHOPIFY_ALLOW_WRITES=1",
+      ),
+    ]);
+  });
+
+  it.each(["curated", "2", "enable"])(
+    "treats an unrecognised SHOPIFY_ALLOW_WRITES=%j as off, and says so",
+    (raw) => {
+      const cfg = load({ SHOPIFY_ALLOW_WRITES: raw });
+      expect(cfg.writes).toBe("off");
+      expect(cfg.configWarnings).toEqual([
+        expect.stringContaining(`SHOPIFY_ALLOW_WRITES="${raw}" is not a recognised boolean`),
+      ]);
+    },
+  );
+
+  // 0.6.0 shipped SHOPIFY_WRITES=off|curated|all. It is ignored rather than
+  // honoured, so there is one way to turn writes on, but never silently.
+  it.each(["curated", "all", "off"])(
+    "ignores the 0.6.0 SHOPIFY_WRITES=%j and points at the flags",
+    (raw) => {
+      const cfg = load({ SHOPIFY_WRITES: raw });
+      expect(cfg.writes).toBe("off");
+      expect(cfg.configWarnings).toEqual([
+        expect.stringContaining("SHOPIFY_WRITES is no longer read"),
+      ]);
+      expect(cfg.configWarnings[0]).toContain("SHOPIFY_ALLOW_WRITES=1");
+    },
+  );
 });

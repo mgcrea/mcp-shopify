@@ -20,6 +20,7 @@ export const testConfig = (overrides: Partial<Config> = {}): Config => ({
   apiVersion: "2026-04",
   maxRetries: 3,
   writes: "off",
+  configWarnings: [],
   ...overrides,
 });
 

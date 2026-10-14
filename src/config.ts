@@ -11,11 +11,13 @@ const ConfigSchema = z.object({
   clientSecret: z.string().min(1).optional(),
   apiVersion: z.string().min(1).default("2026-04"),
   maxRetries: z.number().int().nonnegative().max(10).default(3),
+  // Derived from SHOPIFY_ALLOW_WRITES and SHOPIFY_ALLOW_RAW_MUTATIONS — see
+  // resolveWrites. One level internally, so registration reads one field.
   writes: z.enum(WRITE_LEVELS).default("off"),
-  // The raw SHOPIFY_WRITES value when it was set but not recognised. Kept so the
-  // fallback to "off" reaches the agent through shopify_auth_status, not only
-  // stderr, which most clients swallow.
-  writesInvalid: z.string().optional(),
+  // Anything about the configuration an agent should hear. Returned by
+  // shopify_auth_status as well as printed to stderr, because most clients
+  // swallow stderr and a write flag that silently did nothing looks like a bug.
+  configWarnings: z.array(z.string()).default([]),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
@@ -42,23 +44,50 @@ const parseIntOpt = (value: string | undefined): number | undefined => {
   return Number.isInteger(n) ? n : undefined;
 };
 
+const TRUE_WORDS = ["1", "true", "yes", "on"];
+const FALSE_WORDS = ["0", "false", "no", "off"];
+
 /**
- * Anything other than the three levels resolves to "off": a typo or a guessed
- * boolean ("true", "1") must never widen what an agent can do.
+ * The same words as the other mgcrea servers. Anything else is off, with a
+ * warning: a typo must never widen what an agent can do.
  */
-export const parseWriteLevel = (
-  raw: string | undefined,
-): { level: WriteLevel; invalid?: string } => {
-  if (raw === undefined) return { level: "off" };
-  const value = raw.trim().toLowerCase();
-  if (value === "") return { level: "off" };
-  const level = WRITE_LEVELS.find((candidate) => candidate === value);
-  return level ? { level } : { level: "off", invalid: raw };
+const parseFlag = (name: string, raw: string | undefined, warnings: string[]): boolean => {
+  const value = raw?.trim().toLowerCase() ?? "";
+  if (value === "" || FALSE_WORDS.includes(value)) return false;
+  if (TRUE_WORDS.includes(value)) return true;
+  warnings.push(
+    `${name}="${raw}" is not a recognised boolean (use 1/0, true/false, yes/no, on/off); treated as off.`,
+  );
+  return false;
 };
 
-/** Printed to stderr at startup and returned by shopify_auth_status. */
-export const invalidWritesMessage = (raw: string): string =>
-  `SHOPIFY_WRITES="${raw}" is not one of ${WRITE_LEVELS.join(", ")} — writes are off.`;
+/**
+ * Two switches, the way every mgcrea server gates writes: SHOPIFY_ALLOW_WRITES
+ * registers the curated write tools, and SHOPIFY_ALLOW_RAW_MUTATIONS adds
+ * shopify_graphql_mutation on top. The second never works alone — raw
+ * mutations reach more than the curated tools, so they can't be how writes
+ * get turned on.
+ */
+const resolveWrites = (env: NodeJS.ProcessEnv, warnings: string[]): WriteLevel => {
+  // 0.6.0 read SHOPIFY_WRITES=off|curated|all. Honouring it as well would be two
+  // ways to say one thing, so it is ignored — but never silently.
+  if (env.SHOPIFY_WRITES !== undefined && env.SHOPIFY_WRITES.trim() !== "") {
+    warnings.push(
+      "SHOPIFY_WRITES is no longer read (replaced in 0.7.0). Use SHOPIFY_ALLOW_WRITES=1 for the " +
+        "curated write tools, plus SHOPIFY_ALLOW_RAW_MUTATIONS=1 for shopify_graphql_mutation.",
+    );
+  }
+  const writes = parseFlag("SHOPIFY_ALLOW_WRITES", env.SHOPIFY_ALLOW_WRITES, warnings);
+  const raw = parseFlag("SHOPIFY_ALLOW_RAW_MUTATIONS", env.SHOPIFY_ALLOW_RAW_MUTATIONS, warnings);
+  if (raw && !writes) {
+    warnings.push(
+      "SHOPIFY_ALLOW_RAW_MUTATIONS=1 has no effect without SHOPIFY_ALLOW_WRITES=1 — no write tool " +
+        "is registered. Set both, or neither.",
+    );
+  }
+  if (!writes) return "off";
+  return raw ? "all" : "curated";
+};
 
 /**
  * Never throws for "nothing is configured".
@@ -70,15 +99,16 @@ export const invalidWritesMessage = (raw: string): string =>
  */
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): Config => {
   const rawDomain = env.SHOPIFY_STORE_DOMAIN;
-  const writes = parseWriteLevel(env.SHOPIFY_WRITES);
+  const configWarnings: string[] = [];
+  const writes = resolveWrites(env, configWarnings);
   return ConfigSchema.parse({
     storeDomain: rawDomain ? normalizeStoreDomain(rawDomain) : undefined,
     clientId: env.SHOPIFY_CLIENT_ID,
     clientSecret: env.SHOPIFY_CLIENT_SECRET,
     apiVersion: env.SHOPIFY_API_VERSION,
     maxRetries: parseIntOpt(env.SHOPIFY_MAX_RETRIES),
-    writes: writes.level,
-    writesInvalid: writes.invalid,
+    writes,
+    configWarnings,
   });
 };
 

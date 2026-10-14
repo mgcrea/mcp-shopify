@@ -2,7 +2,7 @@
 import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 
 import { BUILD_INFO } from "#/build-info";
-import { invalidWritesMessage, isConfigured, loadConfig, setupInstructions } from "#/config";
+import { isConfigured, loadConfig, setupInstructions } from "#/config";
 import { createServer } from "#/server";
 
 const stderrLogger = {
@@ -24,9 +24,7 @@ const main = async (): Promise<void> => {
   stderrLogger.warn(
     `shopify-mcp connected (store=${config.storeDomain}, api=${config.apiVersion}, writes=${config.writes})`,
   );
-  if (config.writesInvalid !== undefined) {
-    stderrLogger.warn(`  ${invalidWritesMessage(config.writesInvalid)}`);
-  }
+  for (const warning of config.configWarnings) stderrLogger.warn(`  ${warning}`);
   if (!isConfigured(config)) {
     stderrLogger.warn("  not configured — only shopify_auth_status is available:");
     for (const line of setupInstructions(config)) stderrLogger.warn(`  ${line}`);

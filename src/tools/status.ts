@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import type { ShopifyGraphQLClient } from "#/client/graphql";
 import { ACCESS_SCOPES_QUERY } from "#/client/queries/shop";
-import { invalidWritesMessage, isConfigured, setupInstructions, type Config } from "#/config";
+import { isConfigured, setupInstructions, type Config } from "#/config";
 import { wrap } from "#/tools/util";
 
 // The scope each curated write family needs. The raw mutation tool needs
@@ -24,13 +24,12 @@ const WRITE_SCOPES = [
  * in which case nothing is guessed.
  */
 export const writeWarnings = (config: Config, scopes: string[] | null): string[] => {
-  const warnings: string[] = [];
-  if (config.writesInvalid !== undefined) warnings.push(invalidWritesMessage(config.writesInvalid));
+  const warnings = [...config.configWarnings];
   if (config.writes === "off" || scopes === null) return warnings;
   for (const { scope, tools } of WRITE_SCOPES) {
     if (!scopes.includes(scope)) {
       warnings.push(
-        `SHOPIFY_WRITES=${config.writes}, but the app lacks ${scope}, so ${tools} will fail ` +
+        `Writes are on (${config.writes}), but the app lacks ${scope}, so ${tools} will fail ` +
           "with ACCESS_DENIED. Add it to the app in the Dev Dashboard and reinstall.",
       );
     }
@@ -67,7 +66,7 @@ export const registerStatusTool = (
       title: "Shopify: Auth Status",
       description:
         "Report whether this server has working Shopify credentials, which store and API " +
-        "version it targets, which write level is enabled (SHOPIFY_WRITES) and which access " +
+        "version it targets, which write level is enabled (SHOPIFY_ALLOW_WRITES / SHOPIFY_ALLOW_RAW_MUTATIONS) and which access " +
         "scopes the app holds, and — when something is missing — exactly what to set. Call " +
         "this first when a tool you expected is not listed: an absent tool here means missing " +
         "configuration rather than a bug.",
