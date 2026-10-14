@@ -25,6 +25,8 @@ const CURATED_WRITE_TOOLS = [
   "shopify_delete_metafields",
   "shopify_update_product",
   "shopify_update_variants",
+  "shopify_adjust_inventory",
+  "shopify_set_inventory",
 ];
 
 const WRITE_ANNOTATIONS: Record<string, { destructiveHint: boolean; idempotentHint: boolean }> = {
@@ -32,6 +34,8 @@ const WRITE_ANNOTATIONS: Record<string, { destructiveHint: boolean; idempotentHi
   shopify_delete_metafields: { destructiveHint: true, idempotentHint: true },
   shopify_update_product: { destructiveHint: false, idempotentHint: true },
   shopify_update_variants: { destructiveHint: false, idempotentHint: true },
+  shopify_adjust_inventory: { destructiveHint: false, idempotentHint: false },
+  shopify_set_inventory: { destructiveHint: true, idempotentHint: true },
 };
 
 describe("tool registration", () => {

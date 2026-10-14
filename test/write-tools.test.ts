@@ -1,6 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { connect, graphqlResponse, isRejected, lastRequest, payload } from "./harness.js";
+import {
+  connect,
+  graphqlResponse,
+  isRejected,
+  lastRequest,
+  payload,
+  requestBodies,
+} from "./harness.js";
 
 const curated = { writes: "curated" as const };
 
@@ -247,5 +254,184 @@ describe("shopify_update_variants", () => {
 
     expect(rejected).toBe(true);
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+});
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+const adjustOk = () =>
+  vi.fn(async () =>
+    graphqlResponse({
+      data: {
+        inventoryAdjustQuantities: {
+          inventoryAdjustmentGroup: { reason: "correction" },
+          userErrors: [],
+        },
+      },
+    }),
+  );
+
+const adjustArgs = {
+  reason: "correction",
+  changes: [{ inventoryItemId: "10", locationId: "20", delta: -2 }],
+};
+
+describe("shopify_adjust_inventory", () => {
+  it("normalizes ids, defaults name, and always sends changeFromQuantity", async () => {
+    const fetchImpl = adjustOk();
+    const mcp = await connect(fetchImpl, curated);
+
+    const result = await mcp.callTool({ name: "shopify_adjust_inventory", arguments: adjustArgs });
+
+    const { body } = lastRequest(fetchImpl);
+    expect(body.query).toContain("@idempotent(key: $idempotencyKey)");
+    expect(body.variables!.input).toEqual({
+      name: "available",
+      reason: "correction",
+      changes: [
+        {
+          inventoryItemId: "gid://shopify/InventoryItem/10",
+          locationId: "gid://shopify/Location/20",
+          delta: -2,
+          // Mandatory in 2026-04 even when null; null skips the compare-and-swap.
+          changeFromQuantity: null,
+        },
+      ],
+    });
+    expect(body.variables!.idempotencyKey).toMatch(UUID);
+    expect(payload<{ idempotencyKey: string }>(result).idempotencyKey).toBe(
+      body.variables!.idempotencyKey,
+    );
+  });
+
+  it("uses a caller-supplied idempotency key verbatim", async () => {
+    const fetchImpl = adjustOk();
+    const mcp = await connect(fetchImpl, curated);
+
+    await mcp.callTool({
+      name: "shopify_adjust_inventory",
+      arguments: { ...adjustArgs, idempotencyKey: "retry-me-1" },
+    });
+
+    expect(lastRequest(fetchImpl).body.variables!.idempotencyKey).toBe("retry-me-1");
+  });
+
+  // A shared key would make Shopify drop the second adjustment as a duplicate.
+  it("mints a fresh key for each separate call", async () => {
+    const fetchImpl = adjustOk();
+    const mcp = await connect(fetchImpl, curated);
+
+    await mcp.callTool({ name: "shopify_adjust_inventory", arguments: adjustArgs });
+    await mcp.callTool({ name: "shopify_adjust_inventory", arguments: adjustArgs });
+
+    const [first, second] = requestBodies(fetchImpl);
+    expect(first!.variables!.idempotencyKey).not.toBe(second!.variables!.idempotencyKey);
+  });
+
+  // The client retries 429s internally; the retry must not look like a new change.
+  it("resends the same key when the client retries a 429", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("", { status: 429, headers: { "Retry-After": "0" } }))
+      .mockResolvedValueOnce(
+        graphqlResponse({
+          data: { inventoryAdjustQuantities: { inventoryAdjustmentGroup: {}, userErrors: [] } },
+        }),
+      );
+    const mcp = await connect(fetchImpl, curated);
+
+    const result = await mcp.callTool({ name: "shopify_adjust_inventory", arguments: adjustArgs });
+
+    const bodies = requestBodies(fetchImpl);
+    expect(bodies).toHaveLength(2);
+    expect(bodies[0]!.variables!.idempotencyKey).toBe(bodies[1]!.variables!.idempotencyKey);
+    expect(result.isError).toBeFalsy();
+  });
+});
+
+describe("shopify_set_inventory", () => {
+  it("sends absolute quantities with their changeFromQuantity", async () => {
+    const fetchImpl = vi.fn(async () =>
+      graphqlResponse({
+        data: { inventorySetQuantities: { inventoryAdjustmentGroup: {}, userErrors: [] } },
+      }),
+    );
+    const mcp = await connect(fetchImpl, curated);
+
+    await mcp.callTool({
+      name: "shopify_set_inventory",
+      arguments: {
+        reason: "cycle_count_available",
+        quantities: [
+          { inventoryItemId: "10", locationId: "20", quantity: 7, changeFromQuantity: 5 },
+        ],
+      },
+    });
+
+    const { body } = lastRequest(fetchImpl);
+    expect(body.query).toContain(
+      "inventorySetQuantities(input: $input) @idempotent(key: $idempotencyKey)",
+    );
+    expect(body.variables!.input).toEqual({
+      name: "available",
+      reason: "cycle_count_available",
+      quantities: [
+        {
+          inventoryItemId: "gid://shopify/InventoryItem/10",
+          locationId: "gid://shopify/Location/20",
+          quantity: 7,
+          changeFromQuantity: 5,
+        },
+      ],
+    });
+    expect(body.variables!.idempotencyKey).toMatch(UUID);
+  });
+
+  // Setting an absolute quantity blind can overwrite a concurrent sale.
+  it("refuses a quantity without changeFromQuantity", async () => {
+    const fetchImpl = vi.fn(async () => graphqlResponse({ data: {} }));
+    const mcp = await connect(fetchImpl, curated);
+
+    const rejected = await isRejected(
+      mcp.callTool({
+        name: "shopify_set_inventory",
+        arguments: {
+          reason: "correction",
+          quantities: [{ inventoryItemId: "10", locationId: "20", quantity: 7 }],
+        },
+      }),
+    );
+
+    expect(rejected).toBe(true);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("surfaces a stale changeFromQuantity as a tool error with its code", async () => {
+    const userErrors = [
+      {
+        field: ["input", "quantities", "0"],
+        message: "The quantity has changed",
+        code: "CHANGE_FROM_QUANTITY_STALE",
+      },
+    ];
+    const fetchImpl = vi.fn(async () =>
+      graphqlResponse({
+        data: { inventorySetQuantities: { inventoryAdjustmentGroup: null, userErrors } },
+      }),
+    );
+    const mcp = await connect(fetchImpl, curated);
+
+    const result = await mcp.callTool({
+      name: "shopify_set_inventory",
+      arguments: {
+        reason: "correction",
+        quantities: [
+          { inventoryItemId: "10", locationId: "20", quantity: 7, changeFromQuantity: 5 },
+        ],
+      },
+    });
+
+    expect(result.isError).toBe(true);
+    expect(JSON.stringify(payload(result))).toContain("CHANGE_FROM_QUANTITY_STALE");
   });
 });
