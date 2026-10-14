@@ -73,7 +73,8 @@ export const registerMetafieldWriteTools = (
       title: "Shopify: Delete Metafields",
       description:
         "Delete up to 25 metafields, each identified by owner gid + namespace + key. This " +
-        "cannot be undone.",
+        "cannot be undone. A `null` entry in the returned `deletedMetafields` means that " +
+        "metafield did not exist, so nothing was deleted for it.",
       inputSchema: z.object({
         metafields: z
           .array(z.object(identifier))

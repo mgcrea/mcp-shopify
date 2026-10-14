@@ -27,8 +27,9 @@ export const registerGraphqlMutationTool = (
       description:
         `Run an arbitrary GraphQL mutation against the Shopify Admin API (version ${apiVersion}). ` +
         "This can change anything the app's access scopes allow, including deleting data. Prefer " +
-        "a curated write tool when one fits (shopify_set_metafields, shopify_update_product, " +
-        "shopify_update_variants, shopify_adjust_inventory, shopify_set_inventory), and " +
+        "a curated write tool when one fits (shopify_set_metafields, shopify_delete_metafields, " +
+        "shopify_update_product, shopify_update_variants, shopify_adjust_inventory, " +
+        "shopify_set_inventory), and " +
         "shopify_graphql for reads. Select `userErrors` on every mutation field: any non-empty " +
         "userErrors fail the call with the full response attached. Inventory mutations need " +
         "`@idempotent(key: ...)` as of 2026-04.",

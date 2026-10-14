@@ -125,6 +125,20 @@ describe("write levels", () => {
     }
   });
 
+  // The raw mutation tool steers agents to the curated ones, so it must name all of them.
+  it("points shopify_graphql_mutation at every curated write tool", async () => {
+    const tools = await listTools({ writes: "all" });
+    const description = tools.find((t) => t.name === "shopify_graphql_mutation")?.description;
+    const missing = CURATED_WRITE_TOOLS.filter((name) => !description?.includes(name));
+    expect(missing).toEqual([]);
+  });
+
+  it("explains a null entry in shopify_delete_metafields' result", async () => {
+    const tools = await listTools({ writes: "curated" });
+    const description = tools.find((t) => t.name === "shopify_delete_metafields")?.description;
+    expect(description).toMatch(/`null`.*did not exist/);
+  });
+
   it("keeps every non-write tool read-only at curated", async () => {
     const tools = await listTools({ writes: "curated" });
     const loose = tools.filter(
