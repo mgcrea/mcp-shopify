@@ -19,6 +19,8 @@ export const testConfig = (overrides: Partial<Config> = {}): Config => ({
   clientSecret: "secret",
   apiVersion: "2026-04",
   maxRetries: 3,
+  allowWrites: false,
+  allowRawMutations: false,
   writes: "off",
   configWarnings: [],
   ...overrides,

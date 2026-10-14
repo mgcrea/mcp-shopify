@@ -101,6 +101,8 @@ describe("write flags", () => {
 
   it("adds the raw mutation tool when both flags are on", () => {
     const cfg = load({ SHOPIFY_ALLOW_WRITES: "1", SHOPIFY_ALLOW_RAW_MUTATIONS: "1" });
+    expect(cfg.allowWrites).toBe(true);
+    expect(cfg.allowRawMutations).toBe(true);
     expect(cfg.writes).toBe("all");
     expect(cfg.configWarnings).toEqual([]);
   });

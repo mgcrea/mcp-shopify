@@ -11,8 +11,13 @@ const ConfigSchema = z.object({
   clientSecret: z.string().min(1).optional(),
   apiVersion: z.string().min(1).default("2026-04"),
   maxRetries: z.number().int().nonnegative().max(10).default(3),
-  // Derived from SHOPIFY_ALLOW_WRITES and SHOPIFY_ALLOW_RAW_MUTATIONS — see
-  // resolveWrites. One level internally, so registration reads one field.
+  // The two write switches, as read. Bastion drives SHOPIFY_ALLOW_WRITES with
+  // "1"/"0" and its catalog check proves both are parsed by parseBool into
+  // these z.boolean() fields, so keep that shape.
+  allowWrites: z.boolean().default(false),
+  allowRawMutations: z.boolean().default(false),
+  // Derived from the two switches by resolveWrites. One level internally, so
+  // registration reads one field.
   writes: z.enum(WRITE_LEVELS).default("off"),
   // Anything about the configuration an agent should hear. Returned by
   // shopify_auth_status as well as printed to stderr, because most clients
@@ -48,16 +53,23 @@ const TRUE_WORDS = ["1", "true", "yes", "on"];
 const FALSE_WORDS = ["0", "false", "no", "off"];
 
 /**
- * The same words as the other mgcrea servers. Anything else is off, with a
+ * The same words as the other mgcrea servers. Unset or empty is `undefined`,
+ * so the schema default applies; anything unrecognised is off, with a
  * warning: a typo must never widen what an agent can do.
  */
-const parseFlag = (name: string, raw: string | undefined, warnings: string[]): boolean => {
-  const value = raw?.trim().toLowerCase() ?? "";
-  if (value === "" || FALSE_WORDS.includes(value)) return false;
-  if (TRUE_WORDS.includes(value)) return true;
-  warnings.push(
-    `${name}="${raw}" is not a recognised boolean (use 1/0, true/false, yes/no, on/off); treated as off.`,
-  );
+const parseBool = (
+  name: string,
+  value: string | undefined,
+  warnings: string[],
+): boolean | undefined => {
+  const word = value?.trim().toLowerCase() ?? "";
+  if (word === "") return undefined;
+  if (TRUE_WORDS.includes(word)) return true;
+  if (!FALSE_WORDS.includes(word)) {
+    warnings.push(
+      `${name}="${value}" is not a recognised boolean (use 1/0, true/false, yes/no, on/off); treated as off.`,
+    );
+  }
   return false;
 };
 
@@ -68,25 +80,18 @@ const parseFlag = (name: string, raw: string | undefined, warnings: string[]): b
  * mutations reach more than the curated tools, so they can't be how writes
  * get turned on.
  */
-const resolveWrites = (env: NodeJS.ProcessEnv, warnings: string[]): WriteLevel => {
-  // 0.6.0 read SHOPIFY_WRITES=off|curated|all. Honouring it as well would be two
-  // ways to say one thing, so it is ignored — but never silently.
-  if (env.SHOPIFY_WRITES !== undefined && env.SHOPIFY_WRITES.trim() !== "") {
-    warnings.push(
-      "SHOPIFY_WRITES is no longer read (replaced in 0.7.0). Use SHOPIFY_ALLOW_WRITES=1 for the " +
-        "curated write tools, plus SHOPIFY_ALLOW_RAW_MUTATIONS=1 for shopify_graphql_mutation.",
-    );
-  }
-  const writes = parseFlag("SHOPIFY_ALLOW_WRITES", env.SHOPIFY_ALLOW_WRITES, warnings);
-  const raw = parseFlag("SHOPIFY_ALLOW_RAW_MUTATIONS", env.SHOPIFY_ALLOW_RAW_MUTATIONS, warnings);
-  if (raw && !writes) {
+const resolveWrites = (
+  { allowWrites, allowRawMutations }: { allowWrites: boolean; allowRawMutations: boolean },
+  warnings: string[],
+): WriteLevel => {
+  if (allowRawMutations && !allowWrites) {
     warnings.push(
       "SHOPIFY_ALLOW_RAW_MUTATIONS=1 has no effect without SHOPIFY_ALLOW_WRITES=1 — no write tool " +
         "is registered. Set both, or neither.",
     );
   }
-  if (!writes) return "off";
-  return raw ? "all" : "curated";
+  if (!allowWrites) return "off";
+  return allowRawMutations ? "all" : "curated";
 };
 
 /**
@@ -100,16 +105,29 @@ const resolveWrites = (env: NodeJS.ProcessEnv, warnings: string[]): WriteLevel =
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): Config => {
   const rawDomain = env.SHOPIFY_STORE_DOMAIN;
   const configWarnings: string[] = [];
-  const writes = resolveWrites(env, configWarnings);
-  return ConfigSchema.parse({
+  const bool = (name: string) => parseBool(name, env[name], configWarnings);
+  // 0.6.0 read SHOPIFY_WRITES=off|curated|all. Honouring it as well would be two
+  // ways to say one thing, so it is ignored — but never silently.
+  if (env.SHOPIFY_WRITES !== undefined && env.SHOPIFY_WRITES.trim() !== "") {
+    configWarnings.push(
+      "SHOPIFY_WRITES is no longer read (replaced in 0.7.0). Use SHOPIFY_ALLOW_WRITES=1 for the " +
+        "curated write tools, plus SHOPIFY_ALLOW_RAW_MUTATIONS=1 for shopify_graphql_mutation.",
+    );
+  }
+  const parsed = ConfigSchema.parse({
     storeDomain: rawDomain ? normalizeStoreDomain(rawDomain) : undefined,
     clientId: env.SHOPIFY_CLIENT_ID,
     clientSecret: env.SHOPIFY_CLIENT_SECRET,
     apiVersion: env.SHOPIFY_API_VERSION,
     maxRetries: parseIntOpt(env.SHOPIFY_MAX_RETRIES),
-    writes,
-    configWarnings,
+    allowWrites: bool("SHOPIFY_ALLOW_WRITES"),
+    allowRawMutations: bool("SHOPIFY_ALLOW_RAW_MUTATIONS"),
   });
+  return {
+    ...parsed,
+    writes: resolveWrites(parsed, configWarnings),
+    configWarnings,
+  };
 };
 
 /** True once the server has everything it needs to call the Admin API. */
